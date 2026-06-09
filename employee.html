@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<div class="layout">
+
+<aside class="sidebar">
+    <h1>NoonRay.</h1>
+    <a class="active" href="#">Employee Dashboard</a>
+    <a href="#">My Tasks</a>
+    <button class="btn logout-btn" onclick="TaskTracker.logout()">Logout</button>
+</aside>
+
+<main class="main">
+
+<div class="topbar">
+    <div>
+        <h2>Employee Task Updates</h2>
+        <p class="login-user">Logged in as: <strong id="username"></strong></p>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Assigned Tasks</h3>
+    <table class="task-table">
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Task</th>
+                <th>Description</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th>Update</th>
+            </tr>
+        </thead>
+        <tbody id="employeeTaskTable"></tbody>
+    </table>
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<div class="layout">
+
+<aside class="sidebar">
+    <h1>NoonRay.</h1>
+
+    <a class="active" href="#" onclick="TaskTracker.switchAdminView('tasks')">Admin Dashboard</a>
+    <a href="#" onclick="TaskTracker.switchAdminView('employees')">Employees</a>
+    <a href="#" onclick="TaskTracker.switchAdminView('projects')">Projects</a>
+
+    <button class="btn logout-btn" onclick="TaskTracker.logout()">
+        Logout
+    </button>
+</aside>
+
+<main class="main">
+
+<div class="topbar">
+    <div>
+        <h2>Admin Task Management</h2>
+        <p class="login-user">Logged in as: <strong id="username"></strong></p>
+    </div>
+</div>
+
+<div id="adminTasksView">
+    <div class="task-form card">
+        <h3 id="formTitle">Create & Assign Task</h3>
+
+        <input type="hidden" id="editTaskId" value="">
+
+        <label class="label">Task Title</label>
+        <input class="input" id="taskTitle" placeholder="Task Title">
+
+        <label class="label">Task Description</label>
+        <textarea class="input textarea" id="taskDescription" placeholder="Task Description"></textarea>
+
+        <div class="date-row">
+            <div>
+                <label class="label">Assign To</label>
+                <select class="input" id="employeeSelect"></select>
+            </div>
+            <div>
+                <label class="label">Project</label>
+                <select class="input" id="projectSelect">
+                    <option value="None">None</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="date-row">
+            <div>
+                <label class="label">Start Date</label>
+                <input type="date" class="input" id="startDate">
+            </div>
+            <div>
+                <label class="label">End Date</label>
+                <input type="date" class="input" id="endDate">
+            </div>
+        </div>
+
+        <button class="btn full-btn" id="submitTaskBtn" onclick="TaskTracker.assignTask()">Assign Task</button>
+        <button class="btn cancel-btn full-btn" id="cancelEditBtn" style="display:none; margin-top:10px;" onclick="TaskTracker.cancelEdit()">Cancel Edit</button>
+    </div>
+
+    <div class="card">
+        <h3>Assigned Tasks</h3>
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Project</th>
+                    <th>Assigned To</th>
+                    <th>Dates</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="adminTaskTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="adminProjectsView" style="display: none;">
+    <div class="task-form card">
+        <h3 id="projectFormTitle">Create Project</h3>
+        <input type="hidden" id="editProjectId" value="">
+        
+        <label class="label">Project Name</label>
+        <input class="input" id="projectName" placeholder="e.g., Q3 Website Redesign">
+        
+        <label class="label">Project Description</label>
+        <textarea class="input textarea" id="projectDescription" placeholder="Project goals and details"></textarea>
+
+        <button class="btn full-btn" id="submitProjectBtn" onclick="TaskTracker.saveProject()">Save Project</button>
+        <button class="btn cancel-btn full-btn" id="cancelProjectEditBtn" style="display:none; margin-top:10px;" onclick="TaskTracker.cancelProjectEdit()">Cancel</button>
+    </div>
+
+    <div class="card">
+        <h3>Active Projects</h3>
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Project Name</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="adminProjectTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="adminEmployeesView" style="display: none;">
+    <div class="card">
+        <h3>Registered Employees</h3>
+        <p style="color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">Click on an employee name to view their tasks and download reports.</p>
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody id="adminEmployeesTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="adminEmployeeDetailsView" style="display: none;">
+    <button class="btn cancel-btn" onclick="TaskTracker.switchAdminView('employees')" style="margin-bottom: 20px;">
+        &larr; Back to Employees
+    </button>
+    <button class="btn" style="background: #10b981; margin-bottom: 20px; float: right;" onclick="TaskTracker.downloadPDF()">
+        Download PDF Report
+    </button>
+
+    <div class="card" id="pdfReportArea" style="background: white; color: black; padding: 40px; border-radius: 8px;">
+        <h2 style="color: black; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">
+            Task Report: <span id="reportEmployeeName"></span>
+        </h2>
+        <p style="color: #475569; margin-bottom: 20px;">Generated on: <span id="reportDate"></span></p>
+
+        <table class="task-table" style="color: black;">
+            <thead>
+                <tr style="background-color: #f1f5f9;">
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Project</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Task</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Start Date</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">End Date</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Status</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Remarks</th>
+                </tr>
+            </thead>
+            <tbody id="reportTaskTable"></tbody>
+        </table>
+    </div>
+</div>
+
+</main>
+</div>
+
+</body>
+</html>

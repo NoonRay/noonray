@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Dashboard</title>
+
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="app.js"></script>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+
+        <h1>NoonRay.</h1>
+
+        <a class="active" href="#">Dashboard</a>
+        <a href="#">Employees</a>
+        <a href="#">Projects</a>
+        <a href="#">Departments</a>
+        <a href="#">Reports</a>
+        <a href="#">Task Progress</a>
+
+        <button class="btn logout-btn" onclick="TaskTracker.logout()">
+            Logout
+        </button>
+
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+
+            <div>
+                <h2>Company Task Tracking Dashboard</h2>
+
+                <p class="login-user">
+                    Logged in as:
+                    <strong id="username"></strong>
+                </p>
+            </div>
+
+            <input class="search"
+                   type="text"
+                   placeholder="Search employees, tasks or projects">
+
+        </div>
+
+        <div class="grid stats">
+
+            <div class="card">
+                <h3>Total Tasks</h3>
+                <div class="stat-number">320</div>
+            </div>
+
+            <div class="card">
+                <h3>Completed Tasks</h3>
+                <div class="stat-number">245</div>
+            </div>
+
+            <div class="card">
+                <h3>Pending Reviews</h3>
+                <div class="stat-number">28</div>
+            </div>
+
+            <div class="card">
+                <h3>Project Efficiency</h3>
+                <div class="stat-number">92%</div>
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
