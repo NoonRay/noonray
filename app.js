@@ -57,12 +57,28 @@ loadHolidays();
 
 // ---------------- USERS ----------------
 const users = [
-    { email: "admin", password: "NoonRay", name: "Admin User", role: "admin" },
+    { email: "admin", password: "NR000", name: "Admin User", role: "admin" },
+    { email: "kaushal", password: "NR001", name: "Dr Kaushal Kumar Jha", role: "admin" },
+    { email: "rima", password: "NR002", name: "Rima Kumari Jha", role: "admin" },
     { email: "HP", password: "NR006", name: "Hari Prasath S", role: "employee" },
     { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "employee" },
     { email: "athivel", password: "NR009", name: "Athivel A", role: "employee" },
+    { email: "shareef", password: "NR007", name: "Haris E", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
-    { email: "pratik", password: "NR012", name: "Pratik Balbudhe ", role: "employee" }
+    { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
+    { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "employee" },
+    { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "employee" },
+    { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
+    { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "employee" },
+    { email: "sreenandini", password: "NRIN06", name: "Sreenandini M", role: "employee" },
+    { email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "employee" },
+    { email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "employee" },
+    { email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "employee" },
+    { email: "siva", password: "NRIN010", name: "Siva S", role: "employee" },
+    { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "employee" },
+    { email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "employee" },
+    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "employee" },
+    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "employee" }
 ];
 
 function populateEmployeeDropdown() {
