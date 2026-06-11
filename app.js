@@ -545,6 +545,7 @@ const TaskTracker = {
             console.error("Firebase Error: ", error);
             table.innerHTML = "<tr><td colspan='3' style='text-align:center; color:#ef4444;'>Error loading tasks. Check console.</td></tr>";
         }
+     }
     };
 window.TaskTracker = TaskTracker;
 
