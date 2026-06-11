@@ -369,11 +369,8 @@ const TaskTracker = {
                 const escEmp = (task.employee || "").replace(/'/g, "\\'");
                 const escProj = (task.project || "None").replace(/'/g, "\\'");
 
-                // Highlight task if the start date is today
-                const rowStyle = task.startDate === today ? 'style="background-color: #f0fdf4;"' : '';
-
                 table.innerHTML += `
-                <tr ${rowStyle}>
+                <tr>
                     <td>${task.title}</td>
                     <td><span style="background:#1e293b; color: white; padding:4px 8px; border-radius:4px; font-size:12px;">${task.project || 'None'}</span></td>
                     <td>${task.employee}</td>
