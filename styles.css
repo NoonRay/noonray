@@ -320,3 +320,30 @@ color:#cbd5e1;
 #pdfReportArea {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
+
+/* --- CALENDAR GRID STYLES --- */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 25px;
+}
+
+.calendar-day {
+    background-color: #1e293b;
+    color: #cbd5e1;
+    padding: 15px 10px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid transparent;
+}
+
+.calendar-day:hover {
+    background-color: #3b82f6;
+    color: white;
+    transform: translateY(-2px);
+}
