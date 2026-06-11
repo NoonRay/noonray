@@ -485,7 +485,7 @@ const TaskTracker = {
         html2pdf().set(opt).from(element).save();
     },
 
-    // --- CALENDAR DASHBOARD LOGIC ---
+// --- CALENDAR DASHBOARD LOGIC ---
     async renderFullCalendar() {
         const calendarGrid = document.getElementById("mainCalendarGrid");
         if (!calendarGrid) return;
@@ -498,7 +498,7 @@ const TaskTracker = {
             const dayDiv = document.createElement("div");
             dayDiv.innerText = day;
             dayDiv.className = "calendar-day";
-            dayDiv.style.cursor = "pointer";
+            // Ensure the click event is properly bound to fetch the data
             dayDiv.onclick = () => this.showTasksForDate(day);
             calendarGrid.appendChild(dayDiv);
         }
@@ -506,28 +506,46 @@ const TaskTracker = {
 
     async showTasksForDate(day) {
         const table = document.getElementById("calendarTaskTable");
-        table.innerHTML = "";
-        const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
-        const year = new Date().getFullYear();
-        const formattedDate = `${year}-${month}-${day.toString().padStart(2, '0')}`;
+        const titleElement = document.getElementById("selectedDateTasksTitle");
         
-        document.getElementById("selectedDateTasksTitle").innerText = `Tasks for ${formattedDate}`;
+        // Format the date to strictly match YYYY-MM-DD
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
+        
+        titleElement.innerText = `Tasks for ${formattedDate}`;
+        table.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Loading tasks...</td></tr>";
 
-        const snapshot = await getDocs(collection(db, "tasks"));
-        snapshot.forEach(doc => {
-            const task = doc.data();
-            if (task.startDate === formattedDate) {
-                table.innerHTML += `
-                <tr>
-                    <td>${task.title}</td>
-                    <td>${task.employee}</td>
-                    <td>${task.status}</td>
-                </tr>`;
+        try {
+            const snapshot = await getDocs(collection(db, "tasks"));
+            table.innerHTML = ""; // Clear the loading message
+            let hasTasks = false;
+
+            snapshot.forEach(doc => {
+                const task = doc.data();
+                // Check if the task's start date matches the clicked date
+                if (task.startDate === formattedDate) {
+                    hasTasks = true;
+                    table.innerHTML += `
+                    <tr>
+                        <td>${task.title}</td>
+                        <td>${task.employee}</td>
+                        <td><span style="background:#1e293b; padding:4px 8px; border-radius:4px; font-size:12px;">${task.status}</span></td>
+                    </tr>`;
+                }
+            });
+
+            // If no tasks matched that date, tell the user
+            if (!hasTasks) {
+                table.innerHTML = `<tr><td colspan='3' style='text-align:center; color:#94a3b8;'>No tasks assigned for this date.</td></tr>`;
             }
-        });
-    }
-};
 
+        } catch (error) {
+            console.error("Firebase Error: ", error);
+            table.innerHTML = "<tr><td colspan='3' style='text-align:center; color:#ef4444;'>Error loading tasks. Check console.</td></tr>";
+        }
+    };
 window.TaskTracker = TaskTracker;
 
 window.onload = () => {
