@@ -65,7 +65,7 @@ const users = [
     { email: "athivel", password: "NR009", name: "Athivel A", role: "employee" },
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
-    { email: "pratik", password: "NR011", name: "Pratik Balbudhe", role: "employee" },
+    { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "employee" },
     { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "employee" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
