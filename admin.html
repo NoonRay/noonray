@@ -18,6 +18,7 @@
     <a class="active" href="#" onclick="TaskTracker.switchAdminView('tasks')">Admin Dashboard</a>
     <a href="#" onclick="TaskTracker.switchAdminView('employees')">Employees</a>
     <a href="#" onclick="TaskTracker.switchAdminView('projects')">Projects</a>
+    <a href="#" onclick="TaskTracker.switchAdminView('calendar')">Calendar View</a>
 
     <button class="btn logout-btn" onclick="TaskTracker.logout()">
         Logout
@@ -165,6 +166,25 @@
                 </tr>
             </thead>
             <tbody id="reportTaskTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="adminCalendarView" style="display: none;">
+    <div class="card">
+        <h3>Task Calendar</h3>
+        <div id="mainCalendarGrid" class="calendar-grid"></div>
+        
+        <h4 id="selectedDateTasksTitle">Select a date to view tasks</h4>
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Employee</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="calendarTaskTable"></tbody>
         </table>
     </div>
 </div>
