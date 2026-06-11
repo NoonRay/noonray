@@ -45,7 +45,7 @@ generateCalendar();
 function loadHolidays(){
     const holidayList = document.getElementById("holidayList");
     if(!holidayList) return;
-    const holidays = ["Project Review ", "Employee Performance", "Weekly Status Update"];
+    const holidays = ["Project Review", "Employee Performance", "Weekly Status Update"];
     holidayList.innerHTML = "";
     holidays.forEach(h => {
         const li = document.createElement("li");
@@ -65,7 +65,7 @@ const users = [
     { email: "athivel", password: "NR009", name: "Athivel A", role: "employee" },
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
-    { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
+    { email: "pratik", password: "NR011", name: "Pratik Balbudhe", role: "employee" },
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "employee" },
     { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "employee" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
@@ -74,7 +74,7 @@ const users = [
     { email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "employee" },
     { email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "employee" },
     { email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "employee" },
-    { email: "siva", password: "NRIN010", name: "Siva S", role: "employee" },
+    { email: "siva", password: "NRIN010", name: "Siva S", role: "employee" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "employee" },
     { email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "employee" },
     { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "employee" },
@@ -124,6 +124,7 @@ const TaskTracker = {
             'tasks': document.getElementById("adminTasksView"),
             'employees': document.getElementById("adminEmployeesView"),
             'projects': document.getElementById("adminProjectsView"),
+            'calendar': document.getElementById("adminCalendarView"),
             'employeeDetails': document.getElementById("adminEmployeeDetailsView")
         };
         const links = document.querySelectorAll(".sidebar a");
@@ -133,18 +134,22 @@ const TaskTracker = {
 
         if (view === "tasks" && views.tasks) {
             views.tasks.style.display = "block";
-            links[0].classList.add("active");
+            if(links[0]) links[0].classList.add("active");
         } else if (view === "employees" && views.employees) {
             views.employees.style.display = "block";
-            links[1].classList.add("active");
+            if(links[1]) links[1].classList.add("active");
             renderAdminEmployees();
         } else if (view === "projects" && views.projects) {
             views.projects.style.display = "block";
             if(links[2]) links[2].classList.add("active");
             this.renderAdminProjects();
+        } else if (view === "calendar" && views.calendar) {
+            views.calendar.style.display = "block";
+            if(links[3]) links[3].classList.add("active");
+            this.renderFullCalendar();
         } else if (view === "employeeDetails" && views.employeeDetails) {
             views.employeeDetails.style.display = "block";
-            links[1].classList.add("active"); // Keep employee tab active
+            if(links[1]) links[1].classList.add("active"); // Keep employee tab active
         }
     },
 
@@ -337,21 +342,40 @@ const TaskTracker = {
         const table = document.getElementById("adminTaskTable");
         if(!table) return;
         table.innerHTML = "";
+        const today = new Date().toISOString().split('T')[0];
 
         try {
             const snapshot = await getDocs(collection(db,"tasks"));
-            snapshot.forEach((taskDoc)=>{
-                const task = taskDoc.data();
-                const taskId = taskDoc.id;
+            let taskList = [];
+            snapshot.forEach(docSnap => {
+                taskList.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            // Sorting Logic: Group by Project, then prioritize Today's Tasks
+            taskList.sort((a, b) => {
+                const projA = a.project || "None";
+                const projB = b.project || "None";
+                if (projA !== projB) return projA.localeCompare(projB);
+                
+                const isTodayA = a.startDate === today ? 0 : 1;
+                const isTodayB = b.startDate === today ? 0 : 1;
+                return isTodayA - isTodayB;
+            });
+
+            taskList.forEach((task)=>{
+                const taskId = task.id;
                 const escTitle = (task.title || "").replace(/'/g, "\\'");
                 const escDesc = (task.description || "").replace(/'/g, "\\'");
                 const escEmp = (task.employee || "").replace(/'/g, "\\'");
                 const escProj = (task.project || "None").replace(/'/g, "\\'");
 
+                // Highlight task if the start date is today
+                const rowStyle = task.startDate === today ? 'style="background-color: #f0fdf4;"' : '';
+
                 table.innerHTML += `
-                <tr>
+                <tr ${rowStyle}>
                     <td>${task.title}</td>
-                    <td><span style="background:#1e293b; padding:4px 8px; border-radius:4px; font-size:12px;">${task.project || 'None'}</span></td>
+                    <td><span style="background:#1e293b; color: white; padding:4px 8px; border-radius:4px; font-size:12px;">${task.project || 'None'}</span></td>
                     <td>${task.employee}</td>
                     <td style="font-size: 12px;">S: ${task.startDate || 'N/A'}<br>E: ${task.endDate || 'N/A'}</td>
                     <td>${task.status}</td>
@@ -416,7 +440,7 @@ const TaskTracker = {
         } catch(error){ console.error(error); }
     },
 
-// --- EMPLOYEE PDF REPORT LOGIC ---
+    // --- EMPLOYEE PDF REPORT LOGIC ---
     async viewEmployeeDetails(employeeName) {
         this.switchAdminView('employeeDetails');
         document.getElementById("reportEmployeeName").innerText = employeeName;
@@ -444,7 +468,6 @@ const TaskTracker = {
             });
             
             if(table.innerHTML === "") {
-                // Updated colspan from 5 to 6 to account for the new Remarks column
                 table.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned to this employee.</td></tr>";
             }
         } catch(e) { console.error(e); }
@@ -463,6 +486,48 @@ const TaskTracker = {
         };
 
         html2pdf().set(opt).from(element).save();
+    },
+
+    // --- CALENDAR DASHBOARD LOGIC ---
+    async renderFullCalendar() {
+        const calendarGrid = document.getElementById("mainCalendarGrid");
+        if (!calendarGrid) return;
+        calendarGrid.innerHTML = "";
+        
+        const now = new Date();
+        const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        for (let day = 1; day <= totalDays; day++) {
+            const dayDiv = document.createElement("div");
+            dayDiv.innerText = day;
+            dayDiv.className = "calendar-day";
+            dayDiv.style.cursor = "pointer";
+            dayDiv.onclick = () => this.showTasksForDate(day);
+            calendarGrid.appendChild(dayDiv);
+        }
+    },
+
+    async showTasksForDate(day) {
+        const table = document.getElementById("calendarTaskTable");
+        table.innerHTML = "";
+        const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
+        const year = new Date().getFullYear();
+        const formattedDate = `${year}-${month}-${day.toString().padStart(2, '0')}`;
+        
+        document.getElementById("selectedDateTasksTitle").innerText = `Tasks for ${formattedDate}`;
+
+        const snapshot = await getDocs(collection(db, "tasks"));
+        snapshot.forEach(doc => {
+            const task = doc.data();
+            if (task.startDate === formattedDate) {
+                table.innerHTML += `
+                <tr>
+                    <td>${task.title}</td>
+                    <td>${task.employee}</td>
+                    <td>${task.status}</td>
+                </tr>`;
+            }
+        });
     }
 };
 
@@ -473,8 +538,9 @@ window.onload = () => {
     generateCalendar();
     loadHolidays();
     populateEmployeeDropdown();
-    TaskTracker.renderAdminProjects(); // Loads projects into tables and dropdowns
+    TaskTracker.renderAdminProjects(); 
     TaskTracker.checkAuth();
     TaskTracker.renderAdminTasks();
     TaskTracker.renderEmployeeTasks();
+    TaskTracker.renderFullCalendar();
 };
