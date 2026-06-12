@@ -490,6 +490,77 @@ const TaskTracker = {
         html2pdf().set(opt).from(element).save();
     },
 
+// --- ATTENDANCE LOGIC ---
+    async markAttendance(status) {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        if (!user) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+        try {
+            await addDoc(collection(db, "attendance"), {
+                employee: user.name,
+                date: today,
+                status: status,
+                timestamp: now
+            });
+            
+            const msgElement = document.getElementById("attendanceStatusMsg");
+            if (msgElement) {
+                msgElement.innerText = `Status: Marked ${status} for today at ${now}.`;
+                msgElement.style.color = status === 'Present' ? '#10b981' : '#f59e0b';
+            }
+            alert(`Attendance successfully logged as ${status}`);
+        } catch (error) {
+            console.error(error);
+            alert("Failed to mark attendance. Check connection.");
+        }
+    },
+
+    async renderAdminAttendance() {
+        const table = document.getElementById("adminAttendanceTable");
+        const filterDateInput = document.getElementById("attendanceFilterDate");
+        if (!table || !filterDateInput) return;
+
+        table.innerHTML = "";
+        
+        // Set date filter to today's date if empty
+        if (!filterDateInput.value) {
+            filterDateInput.value = new Date().toISOString().split('T')[0];
+        }
+        const filterDate = filterDateInput.value;
+
+        try {
+            const snapshot = await getDocs(collection(db, "attendance"));
+            let hasRecords = false;
+
+            snapshot.forEach(docSnap => {
+                const record = docSnap.data();
+                // Filter the results to only show the selected date
+                if (record.date === filterDate) {
+                    hasRecords = true;
+                    const statusColor = record.status === 'Present' ? '#10b981' : '#f59e0b';
+                    
+                    table.innerHTML += `
+                        <tr>
+                            <td><strong>${record.employee}</strong></td>
+                            <td>${record.date}</td>
+                            <td><span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${record.status}</span></td>
+                            <td>${record.timestamp}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (!hasRecords) {
+                table.innerHTML = `<tr><td colspan='4' style='text-align:center; color:#94a3b8;'>No attendance logged for ${filterDate}.</td></tr>`;
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    },
+
 // --- CALENDAR DASHBOARD LOGIC ---
     async renderFullCalendar() {
         const calendarGrid = document.getElementById("mainCalendarGrid");
