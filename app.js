@@ -277,7 +277,15 @@ const TaskTracker = {
                     select.appendChild(opt);
                 }
             });
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e); 
+            alert("Failed to save project."); 
+        } finally {
+            // Re-enable the button no matter what happens
+            btn.disabled = false;
+            btn.innerText = originalText;
+            btn.style.opacity = "1";
+        }
     },
 
     // --- TASK LOGIC ---
@@ -308,9 +316,15 @@ const TaskTracker = {
                 this.clearForm();
             }
             this.renderAdminTasks();
-        } catch(error){ console.error(error); alert("Firebase operation failed"); }
+        } catch(error){ 
+            console.error(error); 
+            alert("Firebase operation failed"); 
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalText;
+            btn.style.opacity = "1";
+        }
     },
-
     editTask(id, title, description, employee, project, startDate, endDate) {
         this.switchAdminView('tasks');
         document.getElementById("formTitle").innerText = "Edit Task";
@@ -433,21 +447,36 @@ const TaskTracker = {
                                 oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">${task.remarks || ""}
                             </textarea>
                         </td>
-                        <td><button class="save-btn" onclick="TaskTracker.updateTask('${taskDoc.id}')">Save</button></td>
+                       <td><button id="saveBtn-${taskDoc.id}" class="save-btn" onclick="TaskTracker.updateTask('${taskDoc.id}')">Save</button></td>
                     </tr>`;
                 }
             });
         } catch(error){ console.error(error); }
     },
 
-    async updateTask(id){
+ async updateTask(id){
+        const btn = document.getElementById(`saveBtn-${id}`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+            btn.style.opacity = "0.6";
+        }
+
         try{
             const status = document.getElementById(`status-${id}`).value;
             const remarks = document.getElementById(`remark-${id}`).value;
             await updateDoc(doc(db,"tasks",id),{ status, remarks });
             alert("Task Updated Successfully");
             this.renderEmployeeTasks();
-        } catch(error){ console.error(error); }
+        } catch(error){ 
+            console.error(error); 
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = "Save";
+                btn.style.opacity = "1";
+            }
+        }
     },
 
     // --- EMPLOYEE PDF REPORT LOGIC ---
