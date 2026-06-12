@@ -21,6 +21,14 @@
 <main class="main">
 
 <div class="topbar">
+    <div class="card" style="margin-bottom: 20px;">
+    <h3>Daily Attendance</h3>
+    <p id="attendanceStatusMsg" style="margin-bottom: 15px; color: #cbd5e1;">Status: Not marked for today.</p>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn" style="background: #10b981;" onclick="TaskTracker.markAttendance('Present')">Mark Present</button>
+        <button class="btn cancel-btn" onclick="TaskTracker.markAttendance('On Leave')">Mark Leave</button>
+    </div>
+</div>
     <div>
         <h2>Employee Task Updates</h2>
         <p class="login-user">Logged in as: <strong id="username"></strong></p>
