@@ -2,6 +2,14 @@ import {
     db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
 } from "./firebase.js";
 
+function getLocalDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // ---------------- LIVE CLOCK ----------------
 function updateClockAndDate() {
     const clock = document.getElementById("clock");
@@ -491,30 +499,91 @@ const TaskTracker = {
     },
 
 // --- ATTENDANCE LOGIC ---
-    async markAttendance(status) {
+    async handleAttendance(action) {
         const user = JSON.parse(localStorage.getItem("loggedInUser"));
         if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
-        const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-
+        const today = getLocalDate(); // Using our new fixed local date
+        const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        const nowMs = Date.now(); // We save pure milliseconds to calculate the total duration later
+        
         try {
-            await addDoc(collection(db, "attendance"), {
-                employee: user.name,
-                date: today,
-                status: status,
-                timestamp: now
+            // 1. Search database to see if a record already exists for this employee TODAY
+            const snapshot = await getDocs(collection(db, "attendance"));
+            let existingDocId = null;
+            let existingData = null;
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.employee === user.name && data.date === today) {
+                    existingDocId = docSnap.id;
+                    existingData = data;
+                }
             });
-            
+
             const msgElement = document.getElementById("attendanceStatusMsg");
-            if (msgElement) {
-                msgElement.innerText = `Status: Marked ${status} for today at ${now}.`;
-                msgElement.style.color = status === 'Present' ? '#10b981' : '#f59e0b';
+
+            // --- CHECK IN ---
+            if (action === 'CheckIn') {
+                if (existingDocId) {
+                    alert("You have already checked in or marked leave for today."); return;
+                }
+                await addDoc(collection(db, "attendance"), {
+                    employee: user.name, date: today, status: 'Present',
+                    checkIn: nowTime, checkInMs: nowMs, checkOut: '-', checkOutMs: null, totalTime: '-'
+                });
+                if (msgElement) {
+                    msgElement.innerText = `Status: Checked In at ${nowTime}`;
+                    msgElement.style.color = '#10b981';
+                }
+                alert("Checked in successfully!");
+            } 
+            // --- CHECK OUT ---
+            else if (action === 'CheckOut') {
+                if (!existingDocId) {
+                    alert("You need to Check In first!"); return;
+                }
+                if (existingData.status === 'Leave') {
+                    alert("You are marked on leave today."); return;
+                }
+                if (existingData.checkOutMs) {
+                    alert("You have already checked out for today."); return;
+                }
+                
+                // Calculate Time Difference
+                const durationMs = nowMs - existingData.checkInMs;
+                const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                const totalTimeString = `${hours}h ${minutes}m`;
+
+                // Update the existing document, do not create a new one
+                await updateDoc(doc(db, "attendance", existingDocId), {
+                    checkOut: nowTime, checkOutMs: nowMs, totalTime: totalTimeString
+                });
+
+                if (msgElement) {
+                    msgElement.innerText = `Status: Checked Out at ${nowTime}. Total: ${totalTimeString}`;
+                    msgElement.style.color = '#eab308';
+                }
+                alert(`Checked out successfully! Total worked: ${totalTimeString}`);
+            } 
+            // --- MARK LEAVE ---
+            else if (action === 'Leave') {
+                if (existingDocId) {
+                    alert("You already have an entry for today (Checked in or Leave)."); return;
+                }
+                await addDoc(collection(db, "attendance"), {
+                    employee: user.name, date: today, status: 'Leave',
+                    checkIn: '-', checkInMs: null, checkOut: '-', checkOutMs: null, totalTime: '-'
+                });
+                if (msgElement) {
+                    msgElement.innerText = `Status: Marked Leave for today.`;
+                    msgElement.style.color = '#ef4444';
+                }
+                alert("Leave marked successfully.");
             }
-            alert(`Attendance successfully logged as ${status}`);
         } catch (error) {
-            console.error(error);
-            alert("Failed to mark attendance. Check connection.");
+            console.error(error); alert("Operation failed. Check connection.");
         }
     },
 
@@ -524,11 +593,7 @@ const TaskTracker = {
         if (!table || !filterDateInput) return;
 
         table.innerHTML = "";
-        
-        // Set date filter to today's date if empty
-        if (!filterDateInput.value) {
-            filterDateInput.value = new Date().toISOString().split('T')[0];
-        }
+        if (!filterDateInput.value) filterDateInput.value = getLocalDate();
         const filterDate = filterDateInput.value;
 
         try {
@@ -537,30 +602,106 @@ const TaskTracker = {
 
             snapshot.forEach(docSnap => {
                 const record = docSnap.data();
-                // Filter the results to only show the selected date
                 if (record.date === filterDate) {
                     hasRecords = true;
-                    const statusColor = record.status === 'Present' ? '#10b981' : '#f59e0b';
-                    
+                    const statusColor = record.status === 'Present' ? '#10b981' : '#ef4444';
                     table.innerHTML += `
                         <tr>
                             <td><strong>${record.employee}</strong></td>
                             <td>${record.date}</td>
                             <td><span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${record.status}</span></td>
-                            <td>${record.timestamp}</td>
+                            <td>${record.checkIn || '-'}</td>
+                            <td>${record.checkOut || '-'}</td>
+                            <td><strong>${record.totalTime || '-'}</strong></td>
                         </tr>
                     `;
                 }
             });
-
-            if (!hasRecords) {
-                table.innerHTML = `<tr><td colspan='4' style='text-align:center; color:#94a3b8;'>No attendance logged for ${filterDate}.</td></tr>`;
-            }
-        } catch (error) {
-            console.error(error);
-        }
+            if (!hasRecords) table.innerHTML = `<tr><td colspan='6' style='text-align:center; color:#94a3b8;'>No attendance logged for ${filterDate}.</td></tr>`;
+        } catch (error) { console.error(error); }
     },
 
+    // --- ADMIN EMPLOYEE DETAILS REPORTS ---
+    async viewEmployeeDetails(employeeName) {
+        this.switchAdminView('employeeDetails');
+        document.getElementById("reportEmployeeName").innerText = employeeName;
+        document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
+        
+        // Reset to tasks view whenever a new employee is clicked
+        document.getElementById("reportTypeSelect").value = "tasks";
+        this.toggleEmployeeReportView(); 
+        
+        const taskTable = document.getElementById("reportTaskTable");
+        const attendanceTable = document.getElementById("reportAttendanceTable");
+        taskTable.innerHTML = "";
+        attendanceTable.innerHTML = "";
+
+        try {
+            // 1. Fetch & Load Tasks
+            const taskSnap = await getDocs(collection(db, "tasks"));
+            let hasTasks = false;
+            taskSnap.forEach(docSnap => {
+                const task = docSnap.data();
+                if(task.employee === employeeName) {
+                    hasTasks = true;
+                    taskTable.innerHTML += `
+                        <tr>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
+                        </tr>
+                    `;
+                }
+            });
+            if(!hasTasks) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
+
+            // 2. Fetch & Load Attendance
+            const attSnap = await getDocs(collection(db, "attendance"));
+            let attRecords = [];
+            attSnap.forEach(docSnap => {
+                const att = docSnap.data();
+                if(att.employee === employeeName) attRecords.push(att);
+            });
+            
+            // Sort attendance so newest days are at the top
+            attRecords.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            attRecords.forEach(att => {
+                const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
+                attendanceTable.innerHTML += `
+                    <tr>
+                        <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.date}</td>
+                        <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
+                        <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkIn || '-'}</td>
+                        <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkOut || '-'}</td>
+                        <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${att.totalTime || '-'}</strong></td>
+                    </tr>
+                `;
+            });
+            if(attRecords.length === 0) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
+
+        } catch(e) { console.error(e); }
+    },
+
+    toggleEmployeeReportView() {
+        const reportType = document.getElementById("reportTypeSelect").value;
+        const titleType = document.getElementById("reportTitleType");
+        const taskWrapper = document.getElementById("reportTaskTableWrapper");
+        const attWrapper = document.getElementById("reportAttendanceTableWrapper");
+
+        if (reportType === 'tasks') {
+            titleType.innerText = "Task";
+            taskWrapper.style.display = "table";
+            attWrapper.style.display = "none";
+        } else {
+            titleType.innerText = "Attendance";
+            taskWrapper.style.display = "none";
+            attWrapper.style.display = "table";
+        }
+    },
 // --- CALENDAR DASHBOARD LOGIC ---
     async renderFullCalendar() {
         const calendarGrid = document.getElementById("mainCalendarGrid");
