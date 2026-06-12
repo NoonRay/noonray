@@ -145,17 +145,25 @@
     <button class="btn cancel-btn" onclick="TaskTracker.switchAdminView('employees')" style="margin-bottom: 20px;">
         &larr; Back to Employees
     </button>
-    <button class="btn" style="background: #10b981; margin-bottom: 20px; float: right;" onclick="TaskTracker.downloadPDF()">
-        Download PDF Report
-    </button>
+    
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <select id="reportTypeSelect" class="input" style="width: 200px; margin-top: 0;" onchange="TaskTracker.toggleEmployeeReportView()">
+            <option value="tasks">Tasks Report</option>
+            <option value="attendance">Attendance Report</option>
+        </select>
+        
+        <button class="btn" style="background: #10b981;" onclick="TaskTracker.downloadPDF()">
+            Download PDF Report
+        </button>
+    </div>
 
     <div class="card" id="pdfReportArea" style="background: white; color: black; padding: 40px; border-radius: 8px;">
         <h2 style="color: black; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">
-            Task Report: <span id="reportEmployeeName"></span>
+            <span id="reportTitleType">Task</span> Report: <span id="reportEmployeeName"></span>
         </h2>
         <p style="color: #475569; margin-bottom: 20px;">Generated on: <span id="reportDate"></span></p>
 
-        <table class="task-table" style="color: black;">
+        <table class="task-table" id="reportTaskTableWrapper" style="color: black;">
             <thead>
                 <tr style="background-color: #f1f5f9;">
                     <th style="color: black; border-bottom: 2px solid #cbd5e1;">Project</th>
@@ -167,6 +175,19 @@
                 </tr>
             </thead>
             <tbody id="reportTaskTable"></tbody>
+        </table>
+
+        <table class="task-table" id="reportAttendanceTableWrapper" style="color: black; display: none;">
+            <thead>
+                <tr style="background-color: #f1f5f9;">
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Date</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Status</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Check In</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Check Out</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Total Hours</th>
+                </tr>
+            </thead>
+            <tbody id="reportAttendanceTable"></tbody>
         </table>
     </div>
 </div>
