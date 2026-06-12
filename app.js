@@ -119,13 +119,14 @@ function renderAdminEmployees() {
 const currentPage = window.location.pathname.split("/").pop();
 
 const TaskTracker = {
-    switchAdminView(view) {
+  switchAdminView(view) {
         const views = {
             'tasks': document.getElementById("adminTasksView"),
             'employees': document.getElementById("adminEmployeesView"),
             'projects': document.getElementById("adminProjectsView"),
             'calendar': document.getElementById("adminCalendarView"),
-            'employeeDetails': document.getElementById("adminEmployeeDetailsView")
+            'employeeDetails': document.getElementById("adminEmployeeDetailsView"),
+            'attendance': document.getElementById("adminAttendanceView") // <-- ADDED THIS LINE
         };
         const links = document.querySelectorAll(".sidebar a");
 
@@ -149,7 +150,11 @@ const TaskTracker = {
             this.renderFullCalendar();
         } else if (view === "employeeDetails" && views.employeeDetails) {
             views.employeeDetails.style.display = "block";
-            if(links[1]) links[1].classList.add("active"); // Keep employee tab active
+            if(links[1]) links[1].classList.add("active"); 
+        } else if (view === "attendance" && views.attendance) { // <-- ADDED THIS BLOCK
+            views.attendance.style.display = "block";
+            if(links[4]) links[4].classList.add("active"); // Assumes Attendance is the 5th link
+            this.renderAdminAttendance();
         }
     },
 
