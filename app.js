@@ -288,11 +288,6 @@ const TaskTracker = {
         } catch(e) { 
             console.error(e); 
             alert("Failed to save project."); 
-        } finally {
-            // Re-enable the button no matter what happens
-            btn.disabled = false;
-            btn.innerText = originalText;
-            btn.style.opacity = "1";
         }
     },
 
@@ -327,10 +322,6 @@ const TaskTracker = {
         } catch(error){ 
             console.error(error); 
             alert("Firebase operation failed"); 
-        } finally {
-            btn.disabled = false;
-            btn.innerText = originalText;
-            btn.style.opacity = "1";
         }
     },
     editTask(id, title, description, employee, project, startDate, endDate) {
