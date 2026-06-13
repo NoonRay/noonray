@@ -480,7 +480,6 @@ const TaskTracker = {
 
     // --- EMPLOYEE PDF REPORT LOGIC ---
     async viewEmployeeDetails(employeeName) {
-        sessionStorage.setItem("currentEmployeeDetailName", employeeName); // <-- ADD THIS TO SAVE THE NAME
         this.switchAdminView('employeeDetails');
         document.getElementById("reportEmployeeName").innerText = employeeName;
         document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
@@ -637,6 +636,7 @@ const TaskTracker = {
 
     // --- ADMIN EMPLOYEE DETAILS REPORTS ---
     async viewEmployeeDetails(employeeName) {
+        sessionStorage.setItem("currentEmployeeDetailName", employeeName);
         this.switchAdminView('employeeDetails');
         document.getElementById("reportEmployeeName").innerText = employeeName;
         document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
