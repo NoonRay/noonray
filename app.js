@@ -634,45 +634,60 @@ const TaskTracker = {
         } catch (error) { console.error(error); }
     },
 
-    // --- ADMIN EMPLOYEE DETAILS REPORTS ---
+ // --- ADMIN EMPLOYEE DETAILS REPORTS ---
     async viewEmployeeDetails(employeeName) {
-        sessionStorage.setItem("currentEmployeeDetailName", employeeName);
+        sessionStorage.setItem("currentEmployeeDetailName", employeeName); 
         this.switchAdminView('employeeDetails');
         document.getElementById("reportEmployeeName").innerText = employeeName;
-        document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
         
         // Reset to tasks view whenever a new employee is clicked
-        document.getElementById("reportTypeSelect").value = "tasks";
+        const typeSelect = document.getElementById("reportTypeSelect");
+        if(typeSelect) typeSelect.value = "tasks";
         this.toggleEmployeeReportView(); 
         
         const taskTable = document.getElementById("reportTaskTable");
         const attendanceTable = document.getElementById("reportAttendanceTable");
-        taskTable.innerHTML = "";
-        attendanceTable.innerHTML = "";
+        if (taskTable) taskTable.innerHTML = "";
+        if (attendanceTable) attendanceTable.innerHTML = "";
 
         try {
-            // 1. Fetch & Load Tasks
+            // --- 1. Fetch & Count Approved Leaves ---
+            const leaveSnap = await getDocs(collection(db, "leaves"));
+            let totalLeaveDays = 0;
+            leaveSnap.forEach(docSnap => {
+                const l = docSnap.data();
+                if(l.employee === employeeName && l.status === 'Approved') {
+                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                }
+            });
+
+            // Update Report Date text to include total leaves
+            document.getElementById("reportDate").innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
+
+            // --- 2. Fetch & Load Tasks ---
             const taskSnap = await getDocs(collection(db, "tasks"));
             let hasTasks = false;
             taskSnap.forEach(docSnap => {
                 const task = docSnap.data();
                 if(task.employee === employeeName) {
                     hasTasks = true;
-                    taskTable.innerHTML += `
-                        <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
-                        </tr>
-                    `;
+                    if(taskTable) {
+                        taskTable.innerHTML += `
+                            <tr>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
+                            </tr>
+                        `;
+                    }
                 }
             });
-            if(!hasTasks) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
+            if(!hasTasks && taskTable) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
 
-            // 2. Fetch & Load Attendance
+            // --- 3. Fetch & Load Attendance ---
             const attSnap = await getDocs(collection(db, "attendance"));
             let attRecords = [];
             attSnap.forEach(docSnap => {
@@ -680,26 +695,26 @@ const TaskTracker = {
                 if(att.employee === employeeName) attRecords.push(att);
             });
             
-            // Sort attendance so newest days are at the top
             attRecords.sort((a,b) => new Date(b.date) - new Date(a.date));
 
             attRecords.forEach(att => {
                 const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
-                attendanceTable.innerHTML += `
-                    <tr>
-                        <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.date}</td>
-                        <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
-                        <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkIn || '-'}</td>
-                        <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkOut || '-'}</td>
-                        <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${att.totalTime || '-'}</strong></td>
-                    </tr>
-                `;
+                if(attendanceTable) {
+                    attendanceTable.innerHTML += `
+                        <tr>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.date}</td>
+                            <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkIn || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkOut || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${att.totalTime || '-'}</strong></td>
+                        </tr>
+                    `;
+                }
             });
-            if(attRecords.length === 0) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
+            if(attRecords.length === 0 && attendanceTable) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
 
         } catch(e) { console.error(e); }
     },
-
     toggleEmployeeReportView() {
         const reportType = document.getElementById("reportTypeSelect").value;
         const titleType = document.getElementById("reportTitleType");
