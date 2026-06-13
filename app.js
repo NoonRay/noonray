@@ -796,9 +796,67 @@ const TaskTracker = {
         if (view === 'leaveForm' && leaveForm) {
             leaveForm.style.display = "block";
             if(links[2]) links[2].classList.add("active"); 
+            this.renderEmployeeLeaves(); // Fetch and show table when view opens
         } else if (dashboard) {
             dashboard.style.display = "block";
             if(links[0]) links[0].classList.add("active");
+        }
+    },
+
+    toggleLeaveForm() {
+        const formContainer = document.getElementById("leaveFormContainer");
+        if (formContainer.style.display === "none") {
+            formContainer.style.display = "block";
+        } else {
+            formContainer.style.display = "none";
+        }
+    },
+
+    async renderEmployeeLeaves() {
+        const table = document.getElementById("employeeLeavesTable");
+        if (!table) return;
+        table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
+
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        if (!user) return;
+
+        try {
+            const snapshot = await getDocs(collection(db, "leaves"));
+            let leaves = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.employee === user.name) {
+                    leaves.push(data);
+                }
+            });
+
+            // Sort newest first based on application date
+            leaves.sort((a,b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+
+            table.innerHTML = "";
+            leaves.forEach(data => {
+                let statusColor = "white";
+                if(data.status === 'Approved') statusColor = "#10b981"; // Green
+                if(data.status === 'Rejected') statusColor = "#ef4444"; // Red
+                if(data.status === 'Pending') statusColor = "#eab308";  // Yellow
+
+                table.innerHTML += `
+                    <tr>
+                        <td>${data.leaveType}</td>
+                        <td>${data.dayType}</td>
+                        <td>${data.fromDate}</td>
+                        <td>${data.toDate}</td>
+                        <td>${data.reason}</td>
+                        <td><strong style="color: ${statusColor};">${data.status}</strong></td>
+                    </tr>
+                `;
+            });
+            
+            if (leaves.length === 0) {
+                table.innerHTML = "<tr><td colspan='6' style='text-align:center; color: #94a3b8;'>No leave requests found.</td></tr>";
+            }
+        } catch (error) {
+            console.error(error);
         }
     },
 
@@ -829,8 +887,16 @@ const TaskTracker = {
                 appliedAt: new Date().toISOString()
             });
             alert("Leave application submitted!");
+            
+            // Clear inputs
             document.getElementById("leaveReason").value = "";
-            this.switchEmployeeView('dashboard');
+            document.getElementById("leaveFromDate").value = "";
+            document.getElementById("leaveToDate").value = "";
+            
+            // Hide the form and reload the table
+            this.toggleLeaveForm();
+            this.renderEmployeeLeaves(); 
+            
         } catch (error) {
             console.error(error);
             alert("Failed to submit leave application.");
