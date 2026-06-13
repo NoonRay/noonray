@@ -480,6 +480,7 @@ const TaskTracker = {
 
     // --- EMPLOYEE PDF REPORT LOGIC ---
     async viewEmployeeDetails(employeeName) {
+        sessionStorage.setItem("currentEmployeeDetailName", employeeName); // <-- ADD THIS TO SAVE THE NAME
         this.switchAdminView('employeeDetails');
         document.getElementById("reportEmployeeName").innerText = employeeName;
         document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
@@ -898,6 +899,27 @@ const TaskTracker = {
         }
     },
 
+// --- ADMIN LEAVE NOTIFICATION BADGE ---
+    async updateLeaveBadge() {
+        const badge = document.getElementById("leaveBadge");
+        if (!badge) return;
+        
+        try {
+            const snapshot = await getDocs(collection(db, "leaves"));
+            let pendingCount = 0;
+            snapshot.forEach(docSnap => {
+                if(docSnap.data().status === 'Pending') pendingCount++;
+            });
+            
+            if (pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+        } catch (error) { console.error(error); }
+    },
+
     // --- ADMIN LEAVE APPROVAL LOGIC ---
     async renderAdminLeaves() {
         const table = document.getElementById("adminLeavesTable");
@@ -910,6 +932,9 @@ const TaskTracker = {
                 const data = docSnap.data();
                 const id = docSnap.id;
                 
+                // Glitch Fix: Escape names just in case they contain apostrophes
+                const escEmp = (data.employee || "").replace(/'/g, "\\'"); 
+                
                 table.innerHTML += `
                     <tr>
                         <td><strong>${data.employee}</strong></td>
@@ -921,50 +946,18 @@ const TaskTracker = {
                         <td><strong>${data.status}</strong></td>
                         <td>
                             ${data.status === 'Pending' ? `
-                            <button class="action-btn" style="background:#10b981;" onclick="TaskTracker.approveLeave('${id}', '${data.employee}', '${data.fromDate}', '${data.toDate}', '${data.dayType}')">Approve</button>
+                            <button class="action-btn" style="background:#10b981;" onclick="TaskTracker.approveLeave('${id}', '${escEmp}', '${data.fromDate}', '${data.toDate}', '${data.dayType}')">Approve</button>
                             <button class="action-btn delete-btn" onclick="TaskTracker.rejectLeave('${id}')">Reject</button>
                             ` : '-'}
                         </td>
                     </tr>
                 `;
             });
+            
+            // Update the badge dynamically every time the table renders
+            this.updateLeaveBadge(); 
+            
         } catch (error) { console.error(error); }
-    },
-
-    async approveLeave(leaveId, employeeName, fromDate, toDate, dayType) {
-        if(!confirm(`Approve leave for ${employeeName}?`)) return;
-        
-        try {
-            await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
-            
-            if (dayType === 'Full') {
-                let currentDate = new Date(fromDate);
-                const endDate = new Date(toDate);
-                
-                while (currentDate <= endDate) {
-                    const dateString = currentDate.toISOString().split('T')[0];
-                    
-                    await addDoc(collection(db, "attendance"), {
-                        employee: employeeName,
-                        date: dateString,
-                        status: 'Leave',
-                        checkIn: '-',
-                        checkInMs: null,
-                        checkOut: '-',
-                        checkOutMs: null,
-                        totalTime: '-'
-                    });
-                    
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            }
-            
-            alert("Leave Approved!");
-            this.renderAdminLeaves();
-        } catch (error) { 
-            console.error(error); 
-            alert("Failed to approve leave."); 
-        }
     },
 
     async rejectLeave(leaveId) {
@@ -985,10 +978,25 @@ window.onload = () => {
     populateEmployeeDropdown();
     TaskTracker.checkAuth();
 
-    // --- NEW: Restore the view the user was on before refreshing ---
+    // --- Restore view state ---
     if (currentPage === "admin.html") {
         const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
-        TaskTracker.switchAdminView(savedView);
+        
+        // Fix for the Blank Refresh Bug
+        if (savedView === "employeeDetails") {
+            const savedEmpName = sessionStorage.getItem("currentEmployeeDetailName");
+            if (savedEmpName) {
+                TaskTracker.viewEmployeeDetails(savedEmpName);
+            } else {
+                TaskTracker.switchAdminView('employees'); // Fallback if name is lost
+            }
+        } else {
+            TaskTracker.switchAdminView(savedView);
+        }
+        
+        // Trigger the Notification Badge calculation
+        TaskTracker.updateLeaveBadge(); 
+        
     } else if (currentPage === "employee.html") {
         const savedView = sessionStorage.getItem("currentEmployeeView") || "dashboard";
         TaskTracker.switchEmployeeView(savedView);
