@@ -954,11 +954,50 @@ const TaskTracker = {
                 `;
             });
             
-            // Update the badge dynamically every time the table renders
+         // Update the badge dynamically every time the table renders
             this.updateLeaveBadge(); 
             
         } catch (error) { console.error(error); }
     },
+
+    // ---> PASTE THE MISSING FUNCTION HERE <---
+    async approveLeave(leaveId, employeeName, fromDate, toDate, dayType) {
+        if(!confirm(`Approve leave for ${employeeName}?`)) return;
+        
+        try {
+            await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
+            
+            // Auto-mark attendance if it is a Full day leave
+            if (dayType === 'Full') {
+                let currentDate = new Date(fromDate);
+                const endDate = new Date(toDate);
+                
+                while (currentDate <= endDate) {
+                    const dateString = currentDate.toISOString().split('T')[0];
+                    
+                    await addDoc(collection(db, "attendance"), {
+                        employee: employeeName,
+                        date: dateString,
+                        status: 'Leave',
+                        checkIn: '-',
+                        checkInMs: null,
+                        checkOut: '-',
+                        checkOutMs: null,
+                        totalTime: '-'
+                    });
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+            }
+            
+            alert("Leave Approved!");
+            this.renderAdminLeaves();
+        } catch (error) { 
+            console.error(error); 
+            alert("Failed to approve leave."); 
+        }
+    },
+    // ---> END OF MISSING FUNCTION <---
 
     async rejectLeave(leaveId) {
         if(!confirm("Are you sure you want to reject this leave?")) return;
