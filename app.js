@@ -128,6 +128,7 @@ const currentPage = window.location.pathname.split("/").pop();
 
 const TaskTracker = {
   switchAdminView(view) {
+      sessionStorage.setItem("currentAdminView", view); // <--- ADD THIS LINE
         const views = {
             'tasks': document.getElementById("adminTasksView"),
             'employees': document.getElementById("adminEmployeesView"),
@@ -787,6 +788,7 @@ const TaskTracker = {
 
 // --- EMPLOYEE DASHBOARD & LEAVE LOGIC ---
     switchEmployeeView(view) {
+        sessionStorage.setItem("currentEmployeeView", view);
         const dashboard = document.getElementById("employeeDashboardView");
         const leaveForm = document.getElementById("employeeLeaveFormView");
         const links = document.querySelectorAll(".sidebar a");
@@ -990,8 +992,19 @@ window.onload = () => {
     generateCalendar();
     loadHolidays();
     populateEmployeeDropdown();
-    TaskTracker.renderAdminProjects(); 
     TaskTracker.checkAuth();
+
+    // --- NEW: Restore the view the user was on before refreshing ---
+    if (currentPage === "admin.html") {
+        const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
+        TaskTracker.switchAdminView(savedView);
+    } else if (currentPage === "employee.html") {
+        const savedView = sessionStorage.getItem("currentEmployeeView") || "dashboard";
+        TaskTracker.switchEmployeeView(savedView);
+    }
+
+    // Load data
+    TaskTracker.renderAdminProjects(); 
     TaskTracker.renderAdminTasks();
     TaskTracker.renderEmployeeTasks();
     TaskTracker.renderFullCalendar();
