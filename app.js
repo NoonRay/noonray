@@ -177,13 +177,13 @@ const TaskTracker = {
         const user = users.find(u => u.email === email && u.password === password);
 
         if(!user){ alert("Invalid Email or Password"); return; }
-        localStorage.setItem("loggedInUser", JSON.stringify(user));
+        sessionStorage.setItem("loggedInUser", JSON.stringify(user)); // CHANGED
         window.location.href = user.role === "admin" ? "admin.html" : "employee.html";
     },
 
     checkAuth(){
         if(currentPage === "index.html" || currentPage === "") return;
-        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
         if(!user && currentPage !== "login.html"){
             window.location.href = "login.html"; return;
         }
@@ -192,7 +192,9 @@ const TaskTracker = {
     },
 
     logout(){
-        localStorage.removeItem("loggedInUser");
+        sessionStorage.removeItem("loggedInUser"); // CHANGED
+        sessionStorage.removeItem("currentAdminView"); // NEW: Clean up
+        sessionStorage.removeItem("currentEmployeeView"); // NEW: Clean up
         window.location.href = "index.html";
     },
 
@@ -423,7 +425,7 @@ const TaskTracker = {
         if(!table) return;
         table.innerHTML = "";
 
-        const currentUser = JSON.parse(localStorage.getItem("loggedInUser"));
+        const currentUser = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
         if(!currentUser) return;
 
         try {
@@ -534,7 +536,7 @@ const TaskTracker = {
 
 // --- ATTENDANCE LOGIC ---
     async handleAttendance(action) {
-        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
         if (!user) return;
 
         const today = getLocalDate(); // Using our new fixed local date
@@ -813,7 +815,7 @@ const TaskTracker = {
     },
 
     async renderEmployeeLeaves() {
-        const table = document.getElementById("employeeLeavesTable");
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
         if (!table) return;
         table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
@@ -861,7 +863,7 @@ const TaskTracker = {
     },
 
     async applyLeave() {
-        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
         if (!user) return;
 
         const leaveType = document.querySelector('input[name="leaveType"]:checked').value;
