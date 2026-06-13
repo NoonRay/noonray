@@ -68,8 +68,8 @@ const users = [
     { email: "admin", password: "NR000", name: "Admin User", role: "admin" },
     { email: "kaushal", password: "NR001", name: "Dr Kaushal Kumar Jha", role: "admin" },
     { email: "rima", password: "NR002", name: "Rima Kumari Jha", role: "admin" },
-    { email: "HP", password: "NR006", name: "Hari Prasath S", role: "intern" },
-    { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "intern" },
+    { email: "HP", password: "NR006", name: "Hari Prasath S", role: "employee" },
+    { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "employee" },
     { email: "athivel", password: "NR009", name: "Athivel A", role: "employee" },
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
@@ -94,7 +94,7 @@ function populateEmployeeDropdown() {
     if (!select) return;
     select.innerHTML = "";
     users.forEach(user => {
-        iif (user.role === "employee" || user.role === "intern") {
+        iif (user.role === "employee") {
             const option = document.createElement("option");
             option.value = user.name;
             option.innerText = user.name;
@@ -108,7 +108,7 @@ function renderAdminEmployees() {
     if (!table) return;
     table.innerHTML = "";
     users.forEach(user => {
-        if(user.role === "employee" || user.role === "intern"){
+        if(user.role === "employee"){
             table.innerHTML += `
                 <tr>
                     <td>
