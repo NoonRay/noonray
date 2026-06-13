@@ -108,6 +108,7 @@ function renderAdminEmployees() {
     if (!table) return;
     table.innerHTML = "";
     users.forEach(user => {
+        // Ensure BOTH are included in this check
         if(user.role === "employee" || user.role === "intern"){
             table.innerHTML += `
                 <tr>
