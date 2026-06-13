@@ -61,7 +61,13 @@
 
     <!-- New Leave Form View -->
     <div id="employeeLeaveFormView" style="display: none;">
-        <div class="card">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>My Leaves</h2>
+            <button class="btn" style="background: #2563eb;" onclick="TaskTracker.toggleLeaveForm()">+ Apply Leave</button>
+        </div>
+
+        <div class="card" id="leaveFormContainer" style="display: none; margin-bottom: 20px;">
             <h3 style="margin-bottom: 20px;">Apply for Leave</h3>
             
             <div class="date-row">
@@ -95,10 +101,28 @@
             </div>
 
             <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button class="btn" style="background: #2563eb;" onclick="TaskTracker.applyLeave()">Apply Leave</button>
-                <button class="btn cancel-btn" onclick="TaskTracker.switchEmployeeView('dashboard')">Cancel</button>
+                <button class="btn" style="background: #10b981;" onclick="TaskTracker.applyLeave()">Submit Leave</button>
+                <button class="btn cancel-btn" onclick="TaskTracker.toggleLeaveForm()">Cancel</button>
             </div>
         </div>
+
+        <div class="card">
+            <h3>Leave History</h3>
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>Leave Type</th>
+                        <th>Day Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeLeavesTable"></tbody>
+            </table>
+        </div>
+
     </div>
 </main>
 </div>
