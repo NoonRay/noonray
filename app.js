@@ -914,6 +914,7 @@ const TaskTracker = {
             this.renderAdminLeaves();
         } catch (error) { console.error(error); }
     },
+};
 
 window.TaskTracker = TaskTracker;
 
