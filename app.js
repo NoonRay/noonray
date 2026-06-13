@@ -817,11 +817,11 @@ const TaskTracker = {
     },
 
     async renderEmployeeLeaves() {
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
+        const table = document.getElementById("employeeLeavesTable");
         if (!table) return;
         table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
-        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
         if (!user) return;
 
         try {
