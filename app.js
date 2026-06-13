@@ -913,7 +913,7 @@ const TaskTracker = {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Rejected' });
             this.renderAdminLeaves();
         } catch (error) { console.error(error); }
-    },
+    }
 };
 
 window.TaskTracker = TaskTracker;
