@@ -134,7 +134,8 @@ const TaskTracker = {
             'projects': document.getElementById("adminProjectsView"),
             'calendar': document.getElementById("adminCalendarView"),
             'employeeDetails': document.getElementById("adminEmployeeDetailsView"),
-            'attendance': document.getElementById("adminAttendanceView") // <-- ADDED THIS LINE
+            'attendance': document.getElementById("adminAttendanceView"),// <-- ADDED THIS LINE
+            'leaves': document.getElementById("adminLeavesView")
         };
         const links = document.querySelectorAll(".sidebar a");
 
@@ -163,6 +164,10 @@ const TaskTracker = {
             views.attendance.style.display = "block";
             if(links[4]) links[4].classList.add("active"); // Assumes Attendance is the 5th link
             this.renderAdminAttendance();
+        } else if (view === "leaves" && views.leaves) { // <-- ADDED LEAVES LOGIC
+            views.leaves.style.display = "block";
+            if(links[5]) links[5].classList.add("active"); 
+            this.renderAdminLeaves();
         }
     },
 
@@ -596,21 +601,6 @@ const TaskTracker = {
                 }
                 alert(`Checked out successfully! Total worked: ${totalTimeString}`);
             } 
-            // --- MARK LEAVE ---
-            else if (action === 'Leave') {
-                if (existingDocId) {
-                    alert("You already have an entry for today (Checked in or Leave)."); return;
-                }
-                await addDoc(collection(db, "attendance"), {
-                    employee: user.name, date: today, status: 'Leave',
-                    checkIn: '-', checkInMs: null, checkOut: '-', checkOutMs: null, totalTime: '-'
-                });
-                if (msgElement) {
-                    msgElement.innerText = `Status: Marked Leave for today.`;
-                    msgElement.style.color = '#ef4444';
-                }
-                alert("Leave marked successfully.");
-            }
         } catch (error) {
             console.error(error); alert("Operation failed. Check connection.");
         }
@@ -793,6 +783,138 @@ const TaskTracker = {
         }
      }
     };
+
+// --- EMPLOYEE DASHBOARD & LEAVE LOGIC ---
+    switchEmployeeView(view) {
+        const dashboard = document.getElementById("employeeDashboardView");
+        const leaveForm = document.getElementById("employeeLeaveFormView");
+        const links = document.querySelectorAll(".sidebar a");
+
+        if(dashboard) dashboard.style.display = "none";
+        if(leaveForm) leaveForm.style.display = "none";
+        links.forEach(l => l.classList.remove("active"));
+
+        if (view === 'leaveForm' && leaveForm) {
+            leaveForm.style.display = "block";
+            if(links[2]) links[2].classList.add("active"); 
+        } else if (dashboard) {
+            dashboard.style.display = "block";
+            if(links[0]) links[0].classList.add("active");
+        }
+    },
+
+    async applyLeave() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        if (!user) return;
+
+        const leaveType = document.querySelector('input[name="leaveType"]:checked').value;
+        const dayType = document.querySelector('input[name="dayType"]:checked').value;
+        const fromDate = document.getElementById("leaveFromDate").value;
+        const toDate = document.getElementById("leaveToDate").value;
+        const reason = document.getElementById("leaveReason").value.trim();
+
+        if (!fromDate || !toDate || !reason) {
+            alert("Please select dates and provide a reason.");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "leaves"), {
+                employee: user.name,
+                leaveType,
+                dayType,
+                fromDate,
+                toDate,
+                reason,
+                status: 'Pending',
+                appliedAt: new Date().toISOString()
+            });
+            alert("Leave application submitted!");
+            document.getElementById("leaveReason").value = "";
+            this.switchEmployeeView('dashboard');
+        } catch (error) {
+            console.error(error);
+            alert("Failed to submit leave application.");
+        }
+    },
+
+    // --- ADMIN LEAVE APPROVAL LOGIC ---
+    async renderAdminLeaves() {
+        const table = document.getElementById("adminLeavesTable");
+        if (!table) return;
+        table.innerHTML = "";
+
+        try {
+            const snapshot = await getDocs(collection(db, "leaves"));
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+                
+                table.innerHTML += `
+                    <tr>
+                        <td><strong>${data.employee}</strong></td>
+                        <td>${data.leaveType}</td>
+                        <td>${data.dayType}</td>
+                        <td>${data.fromDate}</td>
+                        <td>${data.toDate}</td>
+                        <td>${data.reason}</td>
+                        <td><strong>${data.status}</strong></td>
+                        <td>
+                            ${data.status === 'Pending' ? `
+                            <button class="action-btn" style="background:#10b981;" onclick="TaskTracker.approveLeave('${id}', '${data.employee}', '${data.fromDate}', '${data.toDate}', '${data.dayType}')">Approve</button>
+                            <button class="action-btn delete-btn" onclick="TaskTracker.rejectLeave('${id}')">Reject</button>
+                            ` : '-'}
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (error) { console.error(error); }
+    },
+
+    async approveLeave(leaveId, employeeName, fromDate, toDate, dayType) {
+        if(!confirm(`Approve leave for ${employeeName}?`)) return;
+        
+        try {
+            await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
+            
+            if (dayType === 'Full') {
+                let currentDate = new Date(fromDate);
+                const endDate = new Date(toDate);
+                
+                while (currentDate <= endDate) {
+                    const dateString = currentDate.toISOString().split('T')[0];
+                    
+                    await addDoc(collection(db, "attendance"), {
+                        employee: employeeName,
+                        date: dateString,
+                        status: 'Leave',
+                        checkIn: '-',
+                        checkInMs: null,
+                        checkOut: '-',
+                        checkOutMs: null,
+                        totalTime: '-'
+                    });
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+            }
+            
+            alert("Leave Approved!");
+            this.renderAdminLeaves();
+        } catch (error) { 
+            console.error(error); 
+            alert("Failed to approve leave."); 
+        }
+    },
+
+    async rejectLeave(leaveId) {
+        if(!confirm("Are you sure you want to reject this leave?")) return;
+        try {
+            await updateDoc(doc(db, "leaves", leaveId), { status: 'Rejected' });
+            this.renderAdminLeaves();
+        } catch (error) { console.error(error); }
+    },
+
 window.TaskTracker = TaskTracker;
 
 window.onload = () => {
