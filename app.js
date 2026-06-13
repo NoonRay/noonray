@@ -68,8 +68,8 @@ const users = [
     { email: "admin", password: "NR000", name: "Admin User", role: "admin" },
     { email: "kaushal", password: "NR001", name: "Dr Kaushal Kumar Jha", role: "admin" },
     { email: "rima", password: "NR002", name: "Rima Kumari Jha", role: "admin" },
-    { email: "HP", password: "NR006", name: "Hari Prasath S", role: "employee" },
-    { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "employee" },
+    { email: "HP", password: "NR006", name: "Hari Prasath S", role: "intern" },
+    { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "intern" },
     { email: "athivel", password: "NR009", name: "Athivel A", role: "employee" },
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
@@ -94,7 +94,7 @@ function populateEmployeeDropdown() {
     if (!select) return;
     select.innerHTML = "";
     users.forEach(user => {
-        if (user.role === "employee") {
+        if (user.role === "employee" || user.role === "intern") {
             const option = document.createElement("option");
             option.value = user.name;
             option.innerText = user.name;
@@ -108,7 +108,7 @@ function renderAdminEmployees() {
     if (!table) return;
     table.innerHTML = "";
     users.forEach(user => {
-        if(user.role === "employee"){
+        if(user.role === "employee" || user.role === "intern"){
             table.innerHTML += `
                 <tr>
                     <td>
@@ -123,19 +123,18 @@ function renderAdminEmployees() {
     });
 }
 
-// ---------------- MAIN APP ----------------
 const currentPage = window.location.pathname.split("/").pop();
 
 const TaskTracker = {
-  switchAdminView(view) {
-      sessionStorage.setItem("currentAdminView", view); // <--- ADD THIS LINE
+    switchAdminView(view) {
+        sessionStorage.setItem("currentAdminView", view); 
         const views = {
             'tasks': document.getElementById("adminTasksView"),
             'employees': document.getElementById("adminEmployeesView"),
             'projects': document.getElementById("adminProjectsView"),
             'calendar': document.getElementById("adminCalendarView"),
             'employeeDetails': document.getElementById("adminEmployeeDetailsView"),
-            'attendance': document.getElementById("adminAttendanceView"),// <-- ADDED THIS LINE
+            'attendance': document.getElementById("adminAttendanceView"),
             'leaves': document.getElementById("adminLeavesView")
         };
         const links = document.querySelectorAll(".sidebar a");
@@ -146,6 +145,9 @@ const TaskTracker = {
         if (view === "tasks" && views.tasks) {
             views.tasks.style.display = "block";
             if(links[0]) links[0].classList.add("active");
+            populateEmployeeDropdown(); 
+            this.renderAdminProjects(); 
+            this.renderAdminTasks();    
         } else if (view === "employees" && views.employees) {
             views.employees.style.display = "block";
             if(links[1]) links[1].classList.add("active");
@@ -161,11 +163,11 @@ const TaskTracker = {
         } else if (view === "employeeDetails" && views.employeeDetails) {
             views.employeeDetails.style.display = "block";
             if(links[1]) links[1].classList.add("active"); 
-        } else if (view === "attendance" && views.attendance) { // <-- ADDED THIS BLOCK
+        } else if (view === "attendance" && views.attendance) { 
             views.attendance.style.display = "block";
-            if(links[4]) links[4].classList.add("active"); // Assumes Attendance is the 5th link
+            if(links[4]) links[4].classList.add("active"); 
             this.renderAdminAttendance();
-        } else if (view === "leaves" && views.leaves) { // <-- ADDED LEAVES LOGIC
+        } else if (view === "leaves" && views.leaves) { 
             views.leaves.style.display = "block";
             if(links[5]) links[5].classList.add("active"); 
             this.renderAdminLeaves();
@@ -178,13 +180,13 @@ const TaskTracker = {
         const user = users.find(u => u.email === email && u.password === password);
 
         if(!user){ alert("Invalid Email or Password"); return; }
-        sessionStorage.setItem("loggedInUser", JSON.stringify(user)); // CHANGED
+        sessionStorage.setItem("loggedInUser", JSON.stringify(user));
         window.location.href = user.role === "admin" ? "admin.html" : "employee.html";
     },
 
     checkAuth(){
         if(currentPage === "index.html" || currentPage === "") return;
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
         if(!user && currentPage !== "login.html"){
             window.location.href = "login.html"; return;
         }
@@ -193,13 +195,12 @@ const TaskTracker = {
     },
 
     logout(){
-        sessionStorage.removeItem("loggedInUser"); // CHANGED
-        sessionStorage.removeItem("currentAdminView"); // NEW: Clean up
-        sessionStorage.removeItem("currentEmployeeView"); // NEW: Clean up
+        sessionStorage.removeItem("loggedInUser"); 
+        sessionStorage.removeItem("currentAdminView"); 
+        sessionStorage.removeItem("currentEmployeeView"); 
         window.location.href = "index.html";
     },
 
-    // --- PROJECT LOGIC ---
     async saveProject() {
         try {
             const name = document.getElementById("projectName").value.trim();
@@ -261,7 +262,6 @@ const TaskTracker = {
                 const proj = docSnap.data();
                 const id = docSnap.id;
                 
-                // Fill Table
                 if(table) {
                     const escName = (proj.name || "").replace(/'/g, "\\'");
                     const escDesc = (proj.description || "").replace(/'/g, "\\'");
@@ -277,7 +277,6 @@ const TaskTracker = {
                     `;
                 }
 
-                // Fill Dropdown in Task Form
                 if(select) {
                     const opt = document.createElement("option");
                     opt.value = proj.name;
@@ -291,7 +290,6 @@ const TaskTracker = {
         }
     },
 
-    // --- TASK LOGIC ---
     async assignTask(){
         try {
             const title = document.getElementById("taskTitle").value.trim();
@@ -324,6 +322,7 @@ const TaskTracker = {
             alert("Firebase operation failed"); 
         }
     },
+
     editTask(id, title, description, employee, project, startDate, endDate) {
         this.switchAdminView('tasks');
         document.getElementById("formTitle").innerText = "Edit Task";
@@ -377,7 +376,6 @@ const TaskTracker = {
                 taskList.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // Sorting Logic: Group by Project, then prioritize Today's Tasks
             taskList.sort((a, b) => {
                 const projA = a.project || "None";
                 const projB = b.project || "None";
@@ -417,7 +415,7 @@ const TaskTracker = {
         if(!table) return;
         table.innerHTML = "";
 
-        const currentUser = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
+        const currentUser = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if(!currentUser) return;
 
         try {
@@ -453,7 +451,7 @@ const TaskTracker = {
         } catch(error){ console.error(error); }
     },
 
- async updateTask(id){
+    async updateTask(id){
         const btn = document.getElementById(`saveBtn-${id}`);
         if (btn) {
             btn.disabled = true;
@@ -478,43 +476,91 @@ const TaskTracker = {
         }
     },
 
-    // --- EMPLOYEE PDF REPORT LOGIC ---
     async viewEmployeeDetails(employeeName) {
+        sessionStorage.setItem("currentEmployeeDetailName", employeeName); 
         this.switchAdminView('employeeDetails');
         document.getElementById("reportEmployeeName").innerText = employeeName;
-        document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
         
-        const table = document.getElementById("reportTaskTable");
-        table.innerHTML = "";
+        const typeSelect = document.getElementById("reportTypeSelect");
+        if(typeSelect) typeSelect.value = "tasks";
+        this.toggleEmployeeReportView(); 
+        
+        const taskTable = document.getElementById("reportTaskTable");
+        const attendanceTable = document.getElementById("reportAttendanceTable");
+        if (taskTable) taskTable.innerHTML = "";
+        if (attendanceTable) attendanceTable.innerHTML = "";
 
         try {
-            const snapshot = await getDocs(collection(db, "tasks"));
-            snapshot.forEach(docSnap => {
+            const leaveSnap = await getDocs(collection(db, "leaves"));
+            let totalLeaveDays = 0;
+            leaveSnap.forEach(docSnap => {
+                const l = docSnap.data();
+                if(l.employee === employeeName && l.status === 'Approved') {
+                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                }
+            });
+
+            const reportDateElem = document.getElementById("reportDate");
+            if (reportDateElem) {
+                reportDateElem.innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
+            }
+
+            const taskSnap = await getDocs(collection(db, "tasks"));
+            let hasTasks = false;
+            taskSnap.forEach(docSnap => {
                 const task = docSnap.data();
                 if(task.employee === employeeName) {
-                    table.innerHTML += `
+                    hasTasks = true;
+                    if(taskTable) {
+                        taskTable.innerHTML += `
+                            <tr>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
+                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
+                            </tr>
+                        `;
+                    }
+                }
+            });
+            if(!hasTasks && taskTable) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
+
+            const attSnap = await getDocs(collection(db, "attendance"));
+            let attRecords = [];
+            attSnap.forEach(docSnap => {
+                const att = docSnap.data();
+                if(att.employee === employeeName) attRecords.push(att);
+            });
+            
+            attRecords.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            attRecords.forEach(att => {
+                const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
+                if(attendanceTable) {
+                    attendanceTable.innerHTML += `
                         <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.date}</td>
+                            <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkIn || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkOut || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${att.totalTime || '-'}</strong></td>
                         </tr>
                     `;
                 }
             });
-            
-            if(table.innerHTML === "") {
-                table.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned to this employee.</td></tr>";
-            }
+            if(attRecords.length === 0 && attendanceTable) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
+
         } catch(e) { console.error(e); }
     },
 
     downloadPDF() {
         const element = document.getElementById('pdfReportArea');
-        const empName = document.getElementById("reportEmployeeName").innerText;
+        const empNameElem = document.getElementById("reportEmployeeName");
+        if(!element || !empNameElem) return;
         
+        const empName = empNameElem.innerText;
         const opt = {
             margin:       0.5,
             filename:     `${empName.replace(/\s+/g, '_')}_Task_Report.pdf`,
@@ -526,17 +572,15 @@ const TaskTracker = {
         html2pdf().set(opt).from(element).save();
     },
 
-// --- ATTENDANCE LOGIC ---
     async handleAttendance(action) {
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const today = getLocalDate(); // Using our new fixed local date
+        const today = getLocalDate(); 
         const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-        const nowMs = Date.now(); // We save pure milliseconds to calculate the total duration later
+        const nowMs = Date.now(); 
         
         try {
-            // 1. Search database to see if a record already exists for this employee TODAY
             const snapshot = await getDocs(collection(db, "attendance"));
             let existingDocId = null;
             let existingData = null;
@@ -551,7 +595,6 @@ const TaskTracker = {
 
             const msgElement = document.getElementById("attendanceStatusMsg");
 
-            // --- CHECK IN ---
             if (action === 'CheckIn') {
                 if (existingDocId) {
                     alert("You have already checked in or marked leave for today."); return;
@@ -566,7 +609,6 @@ const TaskTracker = {
                 }
                 alert("Checked in successfully!");
             } 
-            // --- CHECK OUT ---
             else if (action === 'CheckOut') {
                 if (!existingDocId) {
                     alert("You need to Check In first!"); return;
@@ -578,13 +620,11 @@ const TaskTracker = {
                     alert("You have already checked out for today."); return;
                 }
                 
-                // Calculate Time Difference
                 const durationMs = nowMs - existingData.checkInMs;
                 const hours = Math.floor(durationMs / (1000 * 60 * 60));
                 const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
                 const totalTimeString = `${hours}h ${minutes}m`;
 
-                // Update the existing document, do not create a new one
                 await updateDoc(doc(db, "attendance", existingDocId), {
                     checkOut: nowTime, checkOutMs: nowMs, totalTime: totalTimeString
                 });
@@ -634,104 +674,25 @@ const TaskTracker = {
         } catch (error) { console.error(error); }
     },
 
- // --- ADMIN EMPLOYEE DETAILS REPORTS ---
-    async viewEmployeeDetails(employeeName) {
-        sessionStorage.setItem("currentEmployeeDetailName", employeeName); 
-        this.switchAdminView('employeeDetails');
-        document.getElementById("reportEmployeeName").innerText = employeeName;
-        
-        // Reset to tasks view whenever a new employee is clicked
-        const typeSelect = document.getElementById("reportTypeSelect");
-        if(typeSelect) typeSelect.value = "tasks";
-        this.toggleEmployeeReportView(); 
-        
-        const taskTable = document.getElementById("reportTaskTable");
-        const attendanceTable = document.getElementById("reportAttendanceTable");
-        if (taskTable) taskTable.innerHTML = "";
-        if (attendanceTable) attendanceTable.innerHTML = "";
-
-        try {
-            // --- 1. Fetch & Count Approved Leaves ---
-            const leaveSnap = await getDocs(collection(db, "leaves"));
-            let totalLeaveDays = 0;
-            leaveSnap.forEach(docSnap => {
-                const l = docSnap.data();
-                if(l.employee === employeeName && l.status === 'Approved') {
-                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
-                }
-            });
-
-            // Update Report Date text to include total leaves
-            document.getElementById("reportDate").innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
-
-            // --- 2. Fetch & Load Tasks ---
-            const taskSnap = await getDocs(collection(db, "tasks"));
-            let hasTasks = false;
-            taskSnap.forEach(docSnap => {
-                const task = docSnap.data();
-                if(task.employee === employeeName) {
-                    hasTasks = true;
-                    if(taskTable) {
-                        taskTable.innerHTML += `
-                            <tr>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
-                            </tr>
-                        `;
-                    }
-                }
-            });
-            if(!hasTasks && taskTable) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
-
-            // --- 3. Fetch & Load Attendance ---
-            const attSnap = await getDocs(collection(db, "attendance"));
-            let attRecords = [];
-            attSnap.forEach(docSnap => {
-                const att = docSnap.data();
-                if(att.employee === employeeName) attRecords.push(att);
-            });
-            
-            attRecords.sort((a,b) => new Date(b.date) - new Date(a.date));
-
-            attRecords.forEach(att => {
-                const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
-                if(attendanceTable) {
-                    attendanceTable.innerHTML += `
-                        <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.date}</td>
-                            <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkIn || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkOut || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${att.totalTime || '-'}</strong></td>
-                        </tr>
-                    `;
-                }
-            });
-            if(attRecords.length === 0 && attendanceTable) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
-
-        } catch(e) { console.error(e); }
-    },
     toggleEmployeeReportView() {
-        const reportType = document.getElementById("reportTypeSelect").value;
+        const reportTypeElem = document.getElementById("reportTypeSelect");
+        if(!reportTypeElem) return;
+        const reportType = reportTypeElem.value;
         const titleType = document.getElementById("reportTitleType");
         const taskWrapper = document.getElementById("reportTaskTableWrapper");
         const attWrapper = document.getElementById("reportAttendanceTableWrapper");
 
         if (reportType === 'tasks') {
-            titleType.innerText = "Task";
-            taskWrapper.style.display = "table";
-            attWrapper.style.display = "none";
+            if(titleType) titleType.innerText = "Task";
+            if(taskWrapper) taskWrapper.style.display = "table";
+            if(attWrapper) attWrapper.style.display = "none";
         } else {
-            titleType.innerText = "Attendance";
-            taskWrapper.style.display = "none";
-            attWrapper.style.display = "table";
+            if(titleType) titleType.innerText = "Attendance";
+            if(taskWrapper) taskWrapper.style.display = "none";
+            if(attWrapper) attWrapper.style.display = "table";
         }
     },
-// --- CALENDAR DASHBOARD LOGIC ---
+
     async renderFullCalendar() {
         const calendarGrid = document.getElementById("mainCalendarGrid");
         if (!calendarGrid) return;
@@ -739,22 +700,32 @@ const TaskTracker = {
         
         const now = new Date();
         const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const today = now.getDate();
 
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement("div");
             dayDiv.innerText = day;
             dayDiv.className = "calendar-day";
-            // Ensure the click event is properly bound to fetch the data
+            
+            if (day === today) {
+                dayDiv.style.background = "#2563eb";
+                dayDiv.style.color = "white";
+                dayDiv.style.fontWeight = "bold";
+                dayDiv.style.borderRadius = "4px";
+            }
+            
             dayDiv.onclick = () => this.showTasksForDate(day);
             calendarGrid.appendChild(dayDiv);
         }
+        
+        this.showTasksForDate(today);
     },
 
     async showTasksForDate(day) {
         const table = document.getElementById("calendarTaskTable");
         const titleElement = document.getElementById("selectedDateTasksTitle");
+        if(!table || !titleElement) return;
         
-        // Format the date to strictly match YYYY-MM-DD
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -765,12 +736,11 @@ const TaskTracker = {
 
         try {
             const snapshot = await getDocs(collection(db, "tasks"));
-            table.innerHTML = ""; // Clear the loading message
+            table.innerHTML = ""; 
             let hasTasks = false;
 
             snapshot.forEach(doc => {
                 const task = doc.data();
-                // Check if the task's start date matches the clicked date
                 if (task.startDate === formattedDate) {
                     hasTasks = true;
                     table.innerHTML += `
@@ -782,7 +752,6 @@ const TaskTracker = {
                 }
             });
 
-            // If no tasks matched that date, tell the user
             if (!hasTasks) {
                 table.innerHTML = `<tr><td colspan='3' style='text-align:center; color:#94a3b8;'>No tasks assigned for this date.</td></tr>`;
             }
@@ -793,7 +762,6 @@ const TaskTracker = {
         }
      },
 
-// --- EMPLOYEE DASHBOARD & LEAVE LOGIC ---
     switchEmployeeView(view) {
         sessionStorage.setItem("currentEmployeeView", view);
         const dashboard = document.getElementById("employeeDashboardView");
@@ -807,15 +775,17 @@ const TaskTracker = {
         if (view === 'leaveForm' && leaveForm) {
             leaveForm.style.display = "block";
             if(links[2]) links[2].classList.add("active"); 
-            this.renderEmployeeLeaves(); // Fetch and show table when view opens
+            this.renderEmployeeLeaves(); 
         } else if (dashboard) {
             dashboard.style.display = "block";
             if(links[0]) links[0].classList.add("active");
+            this.renderEmployeeTasks();
         }
     },
 
     toggleLeaveForm() {
         const formContainer = document.getElementById("leaveFormContainer");
+        if(!formContainer) return;
         if (formContainer.style.display === "none") {
             formContainer.style.display = "block";
         } else {
@@ -841,15 +811,14 @@ const TaskTracker = {
                 }
             });
 
-            // Sort newest first based on application date
             leaves.sort((a,b) => new Date(b.appliedAt) - new Date(a.appliedAt));
 
             table.innerHTML = "";
             leaves.forEach(data => {
                 let statusColor = "white";
-                if(data.status === 'Approved') statusColor = "#10b981"; // Green
-                if(data.status === 'Rejected') statusColor = "#ef4444"; // Red
-                if(data.status === 'Pending') statusColor = "#eab308";  // Yellow
+                if(data.status === 'Approved') statusColor = "#10b981"; 
+                if(data.status === 'Rejected') statusColor = "#ef4444"; 
+                if(data.status === 'Pending') statusColor = "#eab308";  
 
                 table.innerHTML += `
                     <tr>
@@ -872,11 +841,15 @@ const TaskTracker = {
     },
 
     async applyLeave() {
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); // CHANGED
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const leaveType = document.querySelector('input[name="leaveType"]:checked').value;
-        const dayType = document.querySelector('input[name="dayType"]:checked').value;
+        const leaveTypeElem = document.querySelector('input[name="leaveType"]:checked');
+        const dayTypeElem = document.querySelector('input[name="dayType"]:checked');
+        if(!leaveTypeElem || !dayTypeElem) return;
+        
+        const leaveType = leaveTypeElem.value;
+        const dayType = dayTypeElem.value;
         const fromDate = document.getElementById("leaveFromDate").value;
         const toDate = document.getElementById("leaveToDate").value;
         const reason = document.getElementById("leaveReason").value.trim();
@@ -899,12 +872,10 @@ const TaskTracker = {
             });
             alert("Leave application submitted!");
             
-            // Clear inputs
             document.getElementById("leaveReason").value = "";
             document.getElementById("leaveFromDate").value = "";
             document.getElementById("leaveToDate").value = "";
             
-            // Hide the form and reload the table
             this.toggleLeaveForm();
             this.renderEmployeeLeaves(); 
             
@@ -914,7 +885,6 @@ const TaskTracker = {
         }
     },
 
-// --- ADMIN LEAVE NOTIFICATION BADGE ---
     async updateLeaveBadge() {
         const badge = document.getElementById("leaveBadge");
         if (!badge) return;
@@ -935,7 +905,6 @@ const TaskTracker = {
         } catch (error) { console.error(error); }
     },
 
-    // --- ADMIN LEAVE APPROVAL LOGIC ---
     async renderAdminLeaves() {
         const table = document.getElementById("adminLeavesTable");
         if (!table) return;
@@ -947,7 +916,6 @@ const TaskTracker = {
                 const data = docSnap.data();
                 const id = docSnap.id;
                 
-                // Glitch Fix: Escape names just in case they contain apostrophes
                 const escEmp = (data.employee || "").replace(/'/g, "\\'"); 
                 
                 table.innerHTML += `
@@ -969,20 +937,17 @@ const TaskTracker = {
                 `;
             });
             
-         // Update the badge dynamically every time the table renders
             this.updateLeaveBadge(); 
             
         } catch (error) { console.error(error); }
     },
 
-    // ---> PASTE THE MISSING FUNCTION HERE <---
     async approveLeave(leaveId, employeeName, fromDate, toDate, dayType) {
         if(!confirm(`Approve leave for ${employeeName}?`)) return;
         
         try {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
             
-            // Auto-mark attendance if it is a Full day leave
             if (dayType === 'Full') {
                 let currentDate = new Date(fromDate);
                 const endDate = new Date(toDate);
@@ -1012,7 +977,6 @@ const TaskTracker = {
             alert("Failed to approve leave."); 
         }
     },
-    // ---> END OF MISSING FUNCTION <---
 
     async rejectLeave(leaveId) {
         if(!confirm("Are you sure you want to reject this leave?")) return;
@@ -1032,23 +996,20 @@ window.onload = () => {
     populateEmployeeDropdown();
     TaskTracker.checkAuth();
 
-    // --- Restore view state ---
     if (currentPage === "admin.html") {
         const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
         
-        // Fix for the Blank Refresh Bug
         if (savedView === "employeeDetails") {
             const savedEmpName = sessionStorage.getItem("currentEmployeeDetailName");
             if (savedEmpName) {
                 TaskTracker.viewEmployeeDetails(savedEmpName);
             } else {
-                TaskTracker.switchAdminView('employees'); // Fallback if name is lost
+                TaskTracker.switchAdminView('employees'); 
             }
         } else {
             TaskTracker.switchAdminView(savedView);
         }
         
-        // Trigger the Notification Badge calculation
         TaskTracker.updateLeaveBadge(); 
         
     } else if (currentPage === "employee.html") {
@@ -1056,7 +1017,6 @@ window.onload = () => {
         TaskTracker.switchEmployeeView(savedView);
     }
 
-    // Load data
     TaskTracker.renderAdminProjects(); 
     TaskTracker.renderAdminTasks();
     TaskTracker.renderEmployeeTasks();
