@@ -13,49 +13,93 @@
 
 <aside class="sidebar">
     <h1>NoonRay.</h1>
-    <a class="active" href="#">Employee Dashboard</a>
-    <a href="#">My Tasks</a>
-    <a href="#" onclick="leave form">leave form</a>
+    <a class="active" href="#" onclick="TaskTracker.switchEmployeeView('dashboard')">Employee Dashboard</a>
+    <a href="#" onclick="TaskTracker.switchEmployeeView('dashboard')">My Tasks</a>
+    <a href="#" onclick="TaskTracker.switchEmployeeView('leaveForm')">Leave Form</a>
     <button class="btn logout-btn" onclick="TaskTracker.logout()">Logout</button>
 </aside>
 
 <main class="main">
-
-<div class="topbar">
-<div class="card" style="margin-bottom: 20px;">
-    <h3>Daily Attendance</h3>
-    <p id="attendanceStatusMsg" style="margin-bottom: 15px; color: #cbd5e1;">Status: Not marked for today.</p>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" style="background: #10b981;" onclick="TaskTracker.handleAttendance('CheckIn')">Check In</button>
-        <button class="btn" style="background: #eab308;" onclick="TaskTracker.handleAttendance('CheckOut')">Check Out</button>
-        <button class="btn cancel-btn" onclick="TaskTracker.handleAttendance('Leave')">Mark Leave</button>
+    <div class="topbar">
+        <div>
+            <h2>Employee Portal</h2>
+            <p class="login-user">Logged in as: <strong id="username"></strong></p>
+        </div>
     </div>
-</div>
-    <div>
-        <h2>Employee Task Updates</h2>
-        <p class="login-user">Logged in as: <strong id="username"></strong></p>
+
+    <!-- Main Dashboard View -->
+    <div id="employeeDashboardView">
+        <div class="card" style="margin-bottom: 20px;">
+            <h3>Daily Attendance</h3>
+            <p id="attendanceStatusMsg" style="margin-bottom: 15px; color: #cbd5e1;">Status: Not marked for today.</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="background: #10b981;" onclick="TaskTracker.handleAttendance('CheckIn')">Check In</button>
+                <button class="btn" style="background: #eab308;" onclick="TaskTracker.handleAttendance('CheckOut')">Check Out</button>
+                <!-- Live/Leave button removed from here -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Assigned Tasks</h3>
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Task</th>
+                        <th>Description</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th>Update</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTaskTable"></tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-<div class="card">
-    <h3>Assigned Tasks</h3>
-    <table class="task-table">
-        <thead>
-            <tr>
-                <th>Project</th>
-                <th>Task</th>
-                <th>Description</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Status</th>
-                <th>Remarks</th>
-                <th>Update</th>
-            </tr>
-        </thead>
-        <tbody id="employeeTaskTable"></tbody>
-    </table>
-</div>
+    <!-- New Leave Form View -->
+    <div id="employeeLeaveFormView" style="display: none;">
+        <div class="card">
+            <h3 style="margin-bottom: 20px;">Apply for Leave</h3>
+            
+            <div class="date-row">
+                <div>
+                    <label class="label">LEAVE TYPE</label>
+                    <label style="margin-right: 15px;"><input type="radio" name="leaveType" value="Leave" checked> Leave</label>
+                    <label><input type="radio" name="leaveType" value="Optional"> Optional</label>
+                </div>
+                <div>
+                    <label class="label">DAY TYPE</label>
+                    <label style="margin-right: 15px;"><input type="radio" name="dayType" value="Full" checked> Full</label>
+                    <label style="margin-right: 15px;"><input type="radio" name="dayType" value="First Half"> First Half</label>
+                    <label><input type="radio" name="dayType" value="Second Half"> Second Half</label>
+                </div>
+            </div>
 
+            <div class="date-row" style="margin-top: 20px;">
+                <div>
+                    <label class="label">FROM</label>
+                    <input type="date" class="input" id="leaveFromDate">
+                </div>
+                <div>
+                    <label class="label">TO</label>
+                    <input type="date" class="input" id="leaveToDate">
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label class="label">REASON</label>
+                <textarea class="input textarea" id="leaveReason" placeholder="Type here leave reason"></textarea>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn" style="background: #2563eb;" onclick="TaskTracker.applyLeave()">Apply Leave</button>
+                <button class="btn cancel-btn" onclick="TaskTracker.switchEmployeeView('dashboard')">Cancel</button>
+            </div>
+        </div>
+    </div>
 </main>
 </div>
 
