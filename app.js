@@ -68,8 +68,8 @@ const users = [
     { email: "admin", password: "NR000", name: "Admin User", role: "admin" },
     { email: "kaushal", password: "NR001", name: "Dr Kaushal Kumar Jha", role: "admin" },
     { email: "rima", password: "NR002", name: "Rima Kumari Jha", role: "admin" },
-    { email: "HP", password: "NR006", name: "Hari Prasath S", role: "employee" },
-    { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "employee" },
+    { email: "HP", password: "NR006", name: "Hari Prasath S", role: "intern" },
+    { email: "lathieswar", password: "NR008", name: "CB Lathieswar Reddy", role: "intern" },
     { email: "athivel", password: "NR009", name: "Athivel A", role: "employee" },
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
@@ -108,7 +108,6 @@ function renderAdminEmployees() {
     if (!table) return;
     table.innerHTML = "";
     users.forEach(user => {
-        // Ensure BOTH are included in this check
         if(user.role === "employee" || user.role === "intern"){
             table.innerHTML += `
                 <tr>
@@ -181,13 +180,13 @@ const TaskTracker = {
         const user = users.find(u => u.email === email && u.password === password);
 
         if(!user){ alert("Invalid Email or Password"); return; }
-        sessionStorage.setItem("loggedInUser", JSON.stringify(user));
+        sessionStorage.setItem("loggedInUser", JSON.stringify(user)); 
         window.location.href = user.role === "admin" ? "admin.html" : "employee.html";
     },
 
     checkAuth(){
         if(currentPage === "index.html" || currentPage === "") return;
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if(!user && currentPage !== "login.html"){
             window.location.href = "login.html"; return;
         }
@@ -389,11 +388,13 @@ const TaskTracker = {
 
             taskList.forEach((task)=>{
                 const taskId = task.id;
-                // Stronger escaping for newlines and double quotes
-                const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, "\\n").replace(/\r/g, "");
-                const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, "\\n").replace(/\r/g, "");
+                
+                // FIXED: Replacing newlines with spaces so the HTML button does not break
+                const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
+                const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
                 const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 const escProj = (task.project || "None").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
                 table.innerHTML += `
                 <tr>
                     <td>${task.title}</td>
@@ -506,7 +507,6 @@ const TaskTracker = {
                 reportDateElem.innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
             }
 
-            // --- 2. Fetch & Load Tasks (Sorted by Date) ---
             const taskSnap = await getDocs(collection(db, "tasks"));
             let employeeTasks = [];
             
@@ -517,8 +517,12 @@ const TaskTracker = {
                 }
             });
 
-            // Sort tasks by 'createdAt' date (newest at the top)
-            employeeTasks.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            // FIXED: Sort tasks by 'startDate' (newest start date at the top)
+            employeeTasks.sort((a, b) => {
+                const dateA = new Date(a.startDate || 0);
+                const dateB = new Date(b.startDate || 0);
+                return dateB - dateA; 
+            });
 
             employeeTasks.forEach(task => {
                 if(taskTable) {
@@ -538,6 +542,7 @@ const TaskTracker = {
             if(employeeTasks.length === 0 && taskTable) {
                 taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
             }
+
             const attSnap = await getDocs(collection(db, "attendance"));
             let attRecords = [];
             attSnap.forEach(docSnap => {
