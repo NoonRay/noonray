@@ -438,7 +438,7 @@ const TaskTracker = {
             });
 
             // SORT THE TASKS (Chronological Order: Oldest Start Date to Newest Start Date)
-            myTasks.sort((a, b) => {
+           myTasks.sort((a, b) => {
                 const dateA = new Date(a.startDate || "9999-12-31"); 
                 const dateB = new Date(b.startDate || "9999-12-31");
                 return dateA - dateB; 
