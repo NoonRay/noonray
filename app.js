@@ -389,11 +389,11 @@ const TaskTracker = {
 
             taskList.forEach((task)=>{
                 const taskId = task.id;
-                const escTitle = (task.title || "").replace(/'/g, "\\'");
-                const escDesc = (task.description || "").replace(/'/g, "\\'");
-                const escEmp = (task.employee || "").replace(/'/g, "\\'");
-                const escProj = (task.project || "None").replace(/'/g, "\\'");
-
+                // Stronger escaping for newlines and double quotes
+                const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, "\\n").replace(/\r/g, "");
+                const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, "\\n").replace(/\r/g, "");
+                const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const escProj = (task.project || "None").replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 table.innerHTML += `
                 <tr>
                     <td>${task.title}</td>
@@ -506,27 +506,37 @@ const TaskTracker = {
                 reportDateElem.innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
             }
 
+            // --- 2. Fetch & Load Tasks (Sorted by Date) ---
             const taskSnap = await getDocs(collection(db, "tasks"));
-            let hasTasks = false;
+            let employeeTasks = [];
+            
             taskSnap.forEach(docSnap => {
                 const task = docSnap.data();
                 if(task.employee === employeeName) {
-                    hasTasks = true;
-                    if(taskTable) {
-                        taskTable.innerHTML += `
-                            <tr>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
-                                <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
-                            </tr>
-                        `;
-                    }
+                    employeeTasks.push(task);
                 }
             });
-            if(!hasTasks && taskTable) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
+
+            // Sort tasks by 'createdAt' date (newest at the top)
+            employeeTasks.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+            employeeTasks.forEach(task => {
+                if(taskTable) {
+                    taskTable.innerHTML += `
+                        <tr>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            if(employeeTasks.length === 0 && taskTable) {
+                taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
 
             const attSnap = await getDocs(collection(db, "attendance"));
             let attRecords = [];
