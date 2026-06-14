@@ -537,7 +537,7 @@ const TaskTracker = {
             
             if(employeeTasks.length === 0 && taskTable) {
                 taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
-
+            }
             const attSnap = await getDocs(collection(db, "attendance"));
             let attRecords = [];
             attSnap.forEach(docSnap => {
