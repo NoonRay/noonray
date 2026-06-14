@@ -1032,9 +1032,4 @@ window.onload = () => {
         const savedView = sessionStorage.getItem("currentEmployeeView") || "dashboard";
         TaskTracker.switchEmployeeView(savedView);
     }
-
-    TaskTracker.renderAdminProjects(); 
-    TaskTracker.renderAdminTasks();
-    TaskTracker.renderEmployeeTasks();
-    TaskTracker.renderFullCalendar();
 };
