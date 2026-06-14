@@ -441,7 +441,7 @@ const TaskTracker = {
            myTasks.sort((a, b) => {
                 const dateA = new Date(a.startDate || "9999-12-31"); 
                 const dateB = new Date(b.startDate || "9999-12-31");
-                return dateA - dateB; 
+                return dateB - dateA; 
             });
 
             // Display the sorted tasks
