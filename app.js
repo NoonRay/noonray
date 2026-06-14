@@ -412,7 +412,7 @@ const TaskTracker = {
         } catch(error){ console.error(error); }
     },
 
-    async renderEmployeeTasks(){
+       async renderEmployeeTasks(){
         const table = document.getElementById("employeeTaskTable");
         if(!table) return;
         table.innerHTML = "";
@@ -422,34 +422,56 @@ const TaskTracker = {
 
         try {
             const snapshot = await getDocs(collection(db,"tasks"));
+            let myTasks = []; // Create a list to hold the tasks
+            
+            // 1. Loop through database and grab the logged-in user's tasks
             snapshot.forEach((taskDoc)=>{
                 const task = taskDoc.data();
+                task.id = taskDoc.id; // Save the database ID inside the task object
                 if(task.employee === currentUser.name){
-                    table.innerHTML += `
-                    <tr>
-                        <td><strong>${task.project || 'None'}</strong></td>
-                        <td>${task.title}</td>
-                        <td>${task.description}</td>
-                        <td>${task.startDate || 'N/A'}</td>
-                        <td>${task.endDate || 'N/A'}</td>
-                        <td>
-                            <select class="status-select" id="status-${taskDoc.id}">
-                                <option ${task.status === "Not Started Yet" ? "selected" : ""}>Not Started Yet</option>
-                                <option ${task.status === "Work In Progress" ? "selected" : ""}>Work In Progress</option>
-                                <option ${task.status === "Work Done" ? "selected" : ""}>Work Done</option>
-                            </select>
-                        </td>
-                        <td>
-                            <textarea 
-                                class="remark-box" 
-                                id="remark-${taskDoc.id}" 
-                                oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">${task.remarks || ""}
-                            </textarea>
-                        </td>
-                       <td><button id="saveBtn-${taskDoc.id}" class="save-btn" onclick="TaskTracker.updateTask('${taskDoc.id}')">Save</button></td>
-                    </tr>`;
+                    myTasks.push(task);
                 }
             });
+
+            // 2. Sort the tasks by 'startDate' (newest at the top)
+            myTasks.sort((a, b) => {
+                const dateA = new Date(a.startDate || 0);
+                const dateB = new Date(b.startDate || 0);
+                return dateB - dateA; 
+            });
+
+            // 3. Render the sorted tasks to the table
+            myTasks.forEach((task)=>{
+                table.innerHTML += `
+                <tr>
+                    <td><strong>${task.project || 'None'}</strong></td>
+                    <td>${task.title}</td>
+                    <td>${task.description}</td>
+                    <td>${task.startDate || 'N/A'}</td>
+                    <td>${task.endDate || 'N/A'}</td>
+                    <td>
+                        <select class="status-select" id="status-${task.id}">
+                            <option ${task.status === "Not Started Yet" ? "selected" : ""}>Not Started Yet</option>
+                            <option ${task.status === "Work In Progress" ? "selected" : ""}>Work In Progress</option>
+                            <option ${task.status === "Work Done" ? "selected" : ""}>Work Done</option>
+                        </select>
+                    </td>
+                    <td>
+                        <textarea 
+                            class="remark-box" 
+                            id="remark-${task.id}" 
+                            oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">${task.remarks || ""}
+                        </textarea>
+                    </td>
+                   <td><button id="saveBtn-${task.id}" class="save-btn" onclick="TaskTracker.updateTask('${task.id}')">Save</button></td>
+                </tr>`;
+            });
+            
+            // Show message if they have no tasks
+            if (myTasks.length === 0) {
+                table.innerHTML = "<tr><td colspan='8' style='text-align:center; color:#94a3b8;'>No tasks assigned.</td></tr>";
+            }
+
         } catch(error){ console.error(error); }
     },
 
