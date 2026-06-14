@@ -108,6 +108,7 @@ function renderAdminEmployees() {
     if (!table) return;
     table.innerHTML = "";
     users.forEach(user => {
+        // Ensure BOTH are included in this check
         if(user.role === "employee" || user.role === "intern"){
             table.innerHTML += `
                 <tr>
@@ -180,13 +181,13 @@ const TaskTracker = {
         const user = users.find(u => u.email === email && u.password === password);
 
         if(!user){ alert("Invalid Email or Password"); return; }
-        sessionStorage.setItem("loggedInUser", JSON.stringify(user)); 
+        sessionStorage.setItem("loggedInUser", JSON.stringify(user));
         window.location.href = user.role === "admin" ? "admin.html" : "employee.html";
     },
 
     checkAuth(){
         if(currentPage === "index.html" || currentPage === "") return;
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
         if(!user && currentPage !== "login.html"){
             window.location.href = "login.html"; return;
         }
@@ -389,7 +390,7 @@ const TaskTracker = {
             taskList.forEach((task)=>{
                 const taskId = task.id;
                 
-                // FIXED: Replacing newlines with spaces so the HTML button does not break
+                // Escaping logic to protect buttons
                 const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
                 const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
                 const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
@@ -412,7 +413,10 @@ const TaskTracker = {
         } catch(error){ console.error(error); }
     },
 
-       async renderEmployeeTasks(){
+    // -------------------------------------------------------------
+    // THIS IS THE FIXED EMPLOYEE TASK VIEW WITH PROPER SORTING
+    // -------------------------------------------------------------
+    async renderEmployeeTasks(){
         const table = document.getElementById("employeeTaskTable");
         if(!table) return;
         table.innerHTML = "";
@@ -422,25 +426,25 @@ const TaskTracker = {
 
         try {
             const snapshot = await getDocs(collection(db,"tasks"));
-            let myTasks = []; // Create a list to hold the tasks
+            let myTasks = [];
             
-            // 1. Loop through database and grab the logged-in user's tasks
+            // Collect all tasks for the logged in user
             snapshot.forEach((taskDoc)=>{
                 const task = taskDoc.data();
-                task.id = taskDoc.id; // Save the database ID inside the task object
+                task.id = taskDoc.id; // Retain ID for updating later
                 if(task.employee === currentUser.name){
                     myTasks.push(task);
                 }
             });
 
-            // 2. Sort the tasks by 'startDate' (newest at the top)
+            // SORT THE TASKS (Chronological Order: Oldest Start Date to Newest Start Date)
             myTasks.sort((a, b) => {
-                const dateA = new Date(a.startDate || 0);
-                const dateB = new Date(b.startDate || 0);
-                return dateB - dateA; 
+                const dateA = new Date(a.startDate || "9999-12-31"); 
+                const dateB = new Date(b.startDate || "9999-12-31");
+                return dateA - dateB; 
             });
 
-            // 3. Render the sorted tasks to the table
+            // Display the sorted tasks
             myTasks.forEach((task)=>{
                 table.innerHTML += `
                 <tr>
@@ -467,11 +471,10 @@ const TaskTracker = {
                 </tr>`;
             });
             
-            // Show message if they have no tasks
-            if (myTasks.length === 0) {
-                table.innerHTML = "<tr><td colspan='8' style='text-align:center; color:#94a3b8;'>No tasks assigned.</td></tr>";
+            // Check if there are no tasks
+            if(myTasks.length === 0) {
+                table.innerHTML = "<tr><td colspan='8' style='text-align:center;'>No tasks assigned.</td></tr>";
             }
-
         } catch(error){ console.error(error); }
     },
 
@@ -539,7 +542,7 @@ const TaskTracker = {
                 }
             });
 
-            // FIXED: Sort tasks by 'startDate' (newest start date at the top)
+            // Sort tasks by 'startDate' for Admin Employee Reports
             employeeTasks.sort((a, b) => {
                 const dateA = new Date(a.startDate || 0);
                 const dateB = new Date(b.startDate || 0);
