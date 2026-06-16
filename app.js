@@ -10,6 +10,27 @@ function getLocalDate() {
     return `${year}-${month}-${day}`;
 }
 
+// --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
+function isWorkingDay(date) {
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
+    
+    // Sundays are strictly non-working
+    if (dayOfWeek === 0) return false;
+    
+    // For Saturdays, check if it is odd or even
+    if (dayOfWeek === 6) {
+        const dateNum = date.getDate();
+        // Calculate which Saturday of the month it is (1st, 2nd, 3rd, 4th, 5th)
+        const nthSaturday = Math.ceil(dateNum / 7);
+        // If it's an odd Saturday (1, 3, 5), return true (working day)
+        // If it's an even Saturday (2, 4), return false (non-working day)
+        return nthSaturday % 2 !== 0;
+    }
+    
+    // Monday through Friday are working days
+    return true; 
+}
+
 // ---------------- LIVE CLOCK ----------------
 function updateClockAndDate() {
     const clock = document.getElementById("clock");
@@ -86,7 +107,9 @@ const users = [
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "intern" },
     { email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
     { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern" },
-    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" }
+    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" },
+    { email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
+    { email: "harish", password: "NRIN016", name: "Harish K", role: "intern" }
 ];
 
 function populateEmployeeDropdown() {
@@ -514,7 +537,14 @@ const TaskTracker = {
             leaveSnap.forEach(docSnap => {
                 const l = docSnap.data();
                 if(l.employee === employeeName && l.status === 'Approved') {
-                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                    let currentDate = new Date(l.fromDate + 'T00:00:00');
+                    const endDate = new Date(l.toDate + 'T00:00:00');
+                    while(currentDate <= endDate) {
+                        if (isWorkingDay(currentDate)) {
+                            totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                        }
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
                 }
             });
 
@@ -562,7 +592,10 @@ const TaskTracker = {
             let attRecords = [];
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                if(att.employee === employeeName) attRecords.push(att);
+                // UPDATE: Ignore non-working days in the employee's personal attendance report
+                if(att.employee === employeeName && isWorkingDay(new Date(att.date + 'T00:00:00'))) {
+                    attRecords.push(att);
+                }
             });
             
             attRecords.sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -671,6 +704,9 @@ const TaskTracker = {
         }
     },
 
+    // -------------------------------------------------------------
+    // UPDATED: ADMIN ATTENDANCE (Filter out non-working days)
+    // -------------------------------------------------------------
     async renderAdminAttendance() {
         const table = document.getElementById("adminAttendanceTable");
         const filterDateInput = document.getElementById("attendanceFilterDate");
@@ -679,6 +715,13 @@ const TaskTracker = {
         table.innerHTML = "";
         if (!filterDateInput.value) filterDateInput.value = getLocalDate();
         const filterDate = filterDateInput.value;
+
+        // Ensure the selected filter date is actually a working day
+        const selectedDateObj = new Date(filterDate + 'T00:00:00');
+        if (!isWorkingDay(selectedDateObj)) {
+            table.innerHTML = `<tr><td colspan='6' style='text-align:center; color:#ef4444;'>${filterDate} is a Non-Working Day (Sunday or Even Saturday). No attendance required.</td></tr>`;
+            return;
+        }
 
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -824,9 +867,6 @@ const TaskTracker = {
         }
     },
 
-    // -------------------------------------------------------------
-    // UPDATED: EMPLOYEE LEAVES (Sorted by Start Date)
-    // -------------------------------------------------------------
     async renderEmployeeLeaves() {
         const table = document.getElementById("employeeLeavesTable");
         if (!table) return;
@@ -845,7 +885,6 @@ const TaskTracker = {
                 }
             });
 
-            // Sort by Start Date (fromDate) - Newest dates at the top
             leaves.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
 
             table.innerHTML = "";
@@ -940,9 +979,6 @@ const TaskTracker = {
         } catch (error) { console.error(error); }
     },
 
-    // -------------------------------------------------------------
-    // UPDATED: ADMIN LEAVES (Sorted by Start Date)
-    // -------------------------------------------------------------
     async renderAdminLeaves() {
         const table = document.getElementById("adminLeavesTable");
         if (!table) return;
@@ -956,7 +992,6 @@ const TaskTracker = {
                 allLeaves.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // Sort by Start Date (fromDate) - Newest dates at the top
             allLeaves.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
 
             allLeaves.forEach(data => {
@@ -994,22 +1029,24 @@ const TaskTracker = {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
             
             if (dayType === 'Full') {
-                let currentDate = new Date(fromDate);
-                const endDate = new Date(toDate);
+                let currentDate = new Date(fromDate + 'T00:00:00');
+                const endDate = new Date(toDate + 'T00:00:00');
                 
                 while (currentDate <= endDate) {
-                    const dateString = currentDate.toISOString().split('T')[0];
-                    
-                    await addDoc(collection(db, "attendance"), {
-                        employee: employeeName,
-                        date: dateString,
-                        status: 'Leave',
-                        checkIn: '-',
-                        checkInMs: null,
-                        checkOut: '-',
-                        checkOutMs: null,
-                        totalTime: '-'
-                    });
+                    if (isWorkingDay(currentDate)) {
+                        const dateString = currentDate.toISOString().split('T')[0];
+                        
+                        await addDoc(collection(db, "attendance"), {
+                            employee: employeeName,
+                            date: dateString,
+                            status: 'Leave',
+                            checkIn: '-',
+                            checkInMs: null,
+                            checkOut: '-',
+                            checkOutMs: null,
+                            totalTime: '-'
+                        });
+                    }
                     
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
