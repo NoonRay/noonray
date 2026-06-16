@@ -108,7 +108,6 @@ function renderAdminEmployees() {
     if (!table) return;
     table.innerHTML = "";
     users.forEach(user => {
-        // Ensure BOTH are included in this check
         if(user.role === "employee" || user.role === "intern"){
             table.innerHTML += `
                 <tr>
@@ -390,7 +389,6 @@ const TaskTracker = {
             taskList.forEach((task)=>{
                 const taskId = task.id;
                 
-                // Escaping logic to protect buttons
                 const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
                 const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
                 const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
@@ -413,9 +411,6 @@ const TaskTracker = {
         } catch(error){ console.error(error); }
     },
 
-    // -------------------------------------------------------------
-    // THIS IS THE FIXED EMPLOYEE TASK VIEW WITH PROPER SORTING
-    // -------------------------------------------------------------
     async renderEmployeeTasks(){
         const table = document.getElementById("employeeTaskTable");
         if(!table) return;
@@ -428,23 +423,20 @@ const TaskTracker = {
             const snapshot = await getDocs(collection(db,"tasks"));
             let myTasks = [];
             
-            // Collect all tasks for the logged in user
             snapshot.forEach((taskDoc)=>{
                 const task = taskDoc.data();
-                task.id = taskDoc.id; // Retain ID for updating later
+                task.id = taskDoc.id; 
                 if(task.employee === currentUser.name){
                     myTasks.push(task);
                 }
             });
 
-            // SORT THE TASKS (Chronological Order: Oldest Start Date to Newest Start Date)
-           myTasks.sort((a, b) => {
+            myTasks.sort((a, b) => {
                 const dateA = new Date(a.startDate || "9999-12-31"); 
                 const dateB = new Date(b.startDate || "9999-12-31");
                 return dateB - dateA; 
             });
 
-            // Display the sorted tasks
             myTasks.forEach((task)=>{
                 table.innerHTML += `
                 <tr>
@@ -471,7 +463,6 @@ const TaskTracker = {
                 </tr>`;
             });
             
-            // Check if there are no tasks
             if(myTasks.length === 0) {
                 table.innerHTML = "<tr><td colspan='8' style='text-align:center;'>No tasks assigned.</td></tr>";
             }
@@ -542,7 +533,6 @@ const TaskTracker = {
                 }
             });
 
-            // Sort tasks by 'startDate' for Admin Employee Reports
             employeeTasks.sort((a, b) => {
                 const dateA = new Date(a.startDate || 0);
                 const dateB = new Date(b.startDate || 0);
@@ -834,6 +824,9 @@ const TaskTracker = {
         }
     },
 
+    // -------------------------------------------------------------
+    // UPDATED: EMPLOYEE LEAVES (Sorted by Start Date)
+    // -------------------------------------------------------------
     async renderEmployeeLeaves() {
         const table = document.getElementById("employeeLeavesTable");
         if (!table) return;
@@ -852,7 +845,8 @@ const TaskTracker = {
                 }
             });
 
-            leaves.sort((a,b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+            // Sort by Start Date (fromDate) - Newest dates at the top
+            leaves.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
 
             table.innerHTML = "";
             leaves.forEach(data => {
@@ -946,6 +940,9 @@ const TaskTracker = {
         } catch (error) { console.error(error); }
     },
 
+    // -------------------------------------------------------------
+    // UPDATED: ADMIN LEAVES (Sorted by Start Date)
+    // -------------------------------------------------------------
     async renderAdminLeaves() {
         const table = document.getElementById("adminLeavesTable");
         if (!table) return;
@@ -953,10 +950,17 @@ const TaskTracker = {
 
         try {
             const snapshot = await getDocs(collection(db, "leaves"));
+            let allLeaves = [];
+            
             snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                const id = docSnap.id;
-                
+                allLeaves.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            // Sort by Start Date (fromDate) - Newest dates at the top
+            allLeaves.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
+
+            allLeaves.forEach(data => {
+                const id = data.id;
                 const escEmp = (data.employee || "").replace(/'/g, "\\'"); 
                 
                 table.innerHTML += `
