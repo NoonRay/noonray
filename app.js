@@ -450,8 +450,7 @@ const TaskTracker = {
     async renderAdminTasks(){
         const table = document.getElementById("adminTaskTable");
         if(!table) return;
-        table.innerHTML = "";
-        const today = getLocalDate(); // Use synchronized date
+        table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>Loading tasks...</td></tr>";
 
         try {
             const snapshot = await getDocs(collection(db,"tasks"));
@@ -460,41 +459,86 @@ const TaskTracker = {
                 taskList.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            taskList.sort((a, b) => {
-                const projA = a.project || "None";
-                const projB = b.project || "None";
-                if (projA !== projB) return projA.localeCompare(projB);
-                
-                const isTodayA = a.startDate === today ? 0 : 1;
-                const isTodayB = b.startDate === today ? 0 : 1;
-                return isTodayA - isTodayB;
+            // 1. Group Tasks by Project
+            const tasksByProject = {};
+            taskList.forEach(task => {
+                const projName = task.project && task.project !== "None" ? task.project : "General / Unassigned Tasks";
+                if (!tasksByProject[projName]) {
+                    tasksByProject[projName] = [];
+                }
+                tasksByProject[projName].push(task);
             });
 
-            taskList.forEach((task)=>{
-                const taskId = task.id;
-                
-                const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
-                const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
-                const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                const escProj = (task.project || "None").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            table.innerHTML = ""; 
 
+            // If database is empty
+            if (Object.keys(tasksByProject).length === 0) {
+                table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px; color: #64748b;'>No tasks assigned yet.</td></tr>";
+                return;
+            }
+
+            // 2. Render each project group separately
+            for (const [project, tasks] of Object.entries(tasksByProject)) {
+                
+                // Sort tasks internally: "Not Started Yet" -> "Work In Progress" -> "Work Done"
+                tasks.sort((a, b) => {
+                    const statusWeight = { "Not Started Yet": 1, "Work In Progress": 2, "Work Done": 3 };
+                    return (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99);
+                });
+
+                // Add a bold, stylized separator row for the Project header
                 table.innerHTML += `
-                <tr>
-                    <td>${task.title}</td>
-                    <td><span style="background:#1e293b; color: white; padding:4px 8px; border-radius:4px; font-size:12px;">${task.project || 'None'}</span></td>
-                    <td>${task.employee}</td>
-                    <td style="font-size: 12px;">S: ${task.startDate || 'N/A'}<br>E: ${task.endDate || 'N/A'}</td>
-                    <td>${task.status}</td>
-                    <td>${task.remarks || ''}</td>
-                    <td>
-                        <button class="action-btn edit-btn" onclick="TaskTracker.editTask('${taskId}', '${escTitle}', '${escDesc}', '${escEmp}', '${escProj}', '${task.startDate}', '${task.endDate}')">Edit</button>
-                        <button class="action-btn delete-btn" onclick="TaskTracker.deleteTask('${taskId}')">Delete</button>
-                    </td>
-                </tr>`;
-            });
-        } catch(error){ console.error(error); }
-    },
+                    <tr style="background-color: #f8fafc; border-top: 3px solid #cbd5e1; border-bottom: 2px solid #e2e8f0;">
+                        <td colspan="7" style="padding: 12px 15px; font-size: 16px; font-weight: bold; color: #0f172a; text-align: left;">
+                            📁 ${project} 
+                            <span style="font-size: 12px; font-weight: normal; color: #64748b; margin-left: 10px; background: #e2e8f0; padding: 4px 10px; border-radius: 12px;">
+                                ${tasks.length} Task${tasks.length > 1 ? 's' : ''}
+                            </span>
+                        </td>
+                    </tr>
+                `;
 
+                // Add the individual task rows under this project header
+                tasks.forEach((task)=>{
+                    const taskId = task.id;
+                    const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
+                    const escDesc = (task.description || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
+                    const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    const escProj = (task.project || "None").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+                    // Create color-coded status badges for quick scanning
+                    let statusBadge = "";
+                    if (task.status === "Work Done") {
+                        statusBadge = `<span style="background:#10b981; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${task.status}</span>`;
+                    } else if (task.status === "Work In Progress") {
+                        statusBadge = `<span style="background:#f59e0b; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${task.status}</span>`;
+                    } else {
+                        statusBadge = `<span style="background:#64748b; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${task.status}</span>`;
+                    }
+
+                    // Build standard row
+                    table.innerHTML += `
+                    <tr>
+                        <td style="font-weight: 500; color: #1e293b; padding-left: 20px;">${task.title}</td>
+                        <td style="color: #64748b; font-size: 13px;">${task.project || '-'}</td>
+                        <td style="font-weight: bold; color: #3b82f6;">${task.employee}</td>
+                        <td style="font-size: 12px; color: #475569;">S: ${task.startDate || 'N/A'}<br>E: ${task.endDate || 'N/A'}</td>
+                        <td>${statusBadge}</td>
+                        <td style="font-size: 13px; color: #475569; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${task.remarks || ''}">
+                            ${task.remarks || '<em style="color:#cbd5e1;">None</em>'}
+                        </td>
+                        <td>
+                            <button class="action-btn edit-btn" style="padding: 6px 12px; margin-right: 4px;" onclick="TaskTracker.editTask('${taskId}', '${escTitle}', '${escDesc}', '${escEmp}', '${escProj}', '${task.startDate}', '${task.endDate}')">Edit</button>
+                            <button class="action-btn delete-btn" style="padding: 6px 12px;" onclick="TaskTracker.deleteTask('${taskId}')">Delete</button>
+                        </td>
+                    </tr>`;
+                });
+            }
+        } catch(error){ 
+            console.error(error); 
+            table.innerHTML = "<tr><td colspan='7' style='text-align:center; color:#ef4444;'>Failed to load tasks. Check console.</td></tr>";
+        }
+    },
     async renderEmployeeTasks(){
         const table = document.getElementById("employeeTaskTable");
         if(!table) return;
