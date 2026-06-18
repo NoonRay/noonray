@@ -1,26 +1,34 @@
 import {
-    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
+    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc
 } from "./firebase.js";
 
-// ---------------- TIME SYNCHRONIZATION (VIA GITHUB) ----------------
+// ---------------- TIME SYNCHRONIZATION (VIA FIREBASE SERVER TIMESTAMP) ----------------
 let timeOffset = 0;
 
 async function syncRealTime() {
     try {
-        // Ping GitHub's API purely to read their server's Date header
-        const response = await fetch('https://api.github.com/', { method: 'HEAD' });
-        const githubDateStr = response.headers.get('Date');
+        // 1. Write a temporary document with the authoritative Firebase server time
+        const syncRef = await addDoc(collection(db, "time_sync"), {
+            requestTime: serverTimestamp()
+        });
         
-        if (!githubDateStr) throw new Error("Could not read Date header from GitHub");
+        // 2. Read the resolved timestamp back immediately
+        const snap = await getDoc(syncRef);
         
-        // Convert GitHub's GMT string into milliseconds
-        const realTimeMs = new Date(githubDateStr).getTime();
-        const localTimeMs = Date.now();
+        if (snap.exists() && snap.data().requestTime) {
+            // .toMillis() converts the Firestore Timestamp object safely to Unix epoch milliseconds
+            const serverTimeMs = snap.data().requestTime.toMillis();
+            const localTimeMs = Date.now();
+            
+            timeOffset = serverTimeMs - localTimeMs;
+            console.log("Clock synced securely via Firebase Server Timestamp. Offset:", timeOffset, "ms");
+        }
         
-        timeOffset = realTimeMs - localTimeMs;
-        console.log("Clock synced securely via GitHub. Offset:", timeOffset, "ms");
+        // 3. Clean up the temporary document asynchronously so it doesn't clutter the database
+        deleteDoc(syncRef).catch(err => console.error("Clean up error:", err));
+
     } catch (error) {
-        console.error("GitHub time sync failed. Falling back to shifted PC clock.", error);
+        console.error("Firebase server time sync failed. Falling back to local clock.", error);
     }
 }
 
@@ -79,7 +87,6 @@ function updateClockAndDate() {
 
     const now = getTrueAbsoluteDate(); 
     
-    // Explicitly binding to Asia/Kolkata ensures it shows Chennai time on index.html immediately
     clock.innerText = now.toLocaleTimeString("en-US", { 
         timeZone: "Asia/Kolkata",
         hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true 
@@ -89,7 +96,6 @@ function updateClockAndDate() {
         weekday: "long", year: "numeric", month: "long", day: "numeric" 
     });
 }
-// Start immediately for index.html, then loop
 updateClockAndDate();
 setInterval(updateClockAndDate, 1000);
 
@@ -99,7 +105,6 @@ function generateCalendar(){
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    // Use strict IST components to prevent PC timezone shifts
     const ist = getISTComponents();
     const year = ist.year;
     const month = ist.month;
@@ -450,7 +455,6 @@ const TaskTracker = {
                 taskList.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // 1. Group Tasks by Project
             const tasksByProject = {};
             taskList.forEach(task => {
                 const projName = task.project && task.project !== "None" ? task.project : "General / Unassigned Tasks";
@@ -462,22 +466,18 @@ const TaskTracker = {
 
             table.innerHTML = ""; 
 
-            // If database is empty
             if (Object.keys(tasksByProject).length === 0) {
                 table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px; color: #e2e8f0;'>No tasks assigned yet.</td></tr>";
                 return;
             }
 
-            // 2. Render each project group separately
             for (const [project, tasks] of Object.entries(tasksByProject)) {
                 
-                // Sort tasks internally: "Not Started Yet" -> "Work In Progress" -> "Work Done"
                 tasks.sort((a, b) => {
                     const statusWeight = { "Not Started Yet": 1, "Work In Progress": 2, "Work Done": 3 };
                     return (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99);
                 });
 
-                // Add a bold, stylized separator row for the Project header (Darkened background for white text)
                 table.innerHTML += `
                     <tr style="background-color: #334155; border-top: 3px solid #475569; border-bottom: 2px solid #1e293b;">
                         <td colspan="7" style="padding: 12px 15px; font-size: 16px; font-weight: bold; color: #ffffff; text-align: left;">
@@ -489,7 +489,6 @@ const TaskTracker = {
                     </tr>
                 `;
 
-                // Add the individual task rows under this project header
                 tasks.forEach((task)=>{
                     const taskId = task.id;
                     const escTitle = (task.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/(\r\n|\n|\r)/gm, " ");
@@ -497,7 +496,6 @@ const TaskTracker = {
                     const escEmp = (task.employee || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     const escProj = (task.project || "None").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
-                    // Create color-coded status badges for quick scanning
                     let statusBadge = "";
                     if (task.status === "Work Done") {
                         statusBadge = `<span style="background:#10b981; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${task.status}</span>`;
@@ -507,7 +505,6 @@ const TaskTracker = {
                         statusBadge = `<span style="background:#64748b; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${task.status}</span>`;
                     }
 
-                    // Build standard row with pure white and brightened text colors
                     table.innerHTML += `
                     <tr>
                         <td style="font-weight: 500; color: #ffffff; padding-left: 20px;">${task.title}</td>
@@ -739,7 +736,6 @@ const TaskTracker = {
         const trueNow = getTrueAbsoluteDate(); 
         const today = getLocalDate();
         
-        // Explicit strict timezone enforcement during formatting
         const nowTime = trueNow.toLocaleTimeString("en-US", { 
             timeZone: "Asia/Kolkata",
             hour: "2-digit", minute: "2-digit", hour12: true 
@@ -870,7 +866,6 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        // Strictly get the real Chennai date, ignoring the computer
         const ist = getISTComponents();
         const year = ist.year;
         const month = ist.month;
@@ -1174,10 +1169,10 @@ const TaskTracker = {
 window.TaskTracker = TaskTracker;
 
 window.onload = async () => {
-    // 1. Sync time before doing anything else
+    // 1. Force authoritative sync via Firebase server timestamp document handshake
     await syncRealTime(); 
     
-    // 2. Initialize application logic
+    // 2. Hydrate layouts and continue execution flow natively
     updateClockAndDate();
     generateCalendar();
     loadHolidays();
