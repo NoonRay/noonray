@@ -3,6 +3,33 @@ import {
 } from "./firebase.js";
 
 // =====================================================
+// TIME SYNCHRONIZATION (FOR UI CLOCK ONLY)
+// =====================================================
+let timeOffset = 0;
+
+async function syncRealTime() {
+    try {
+        // Fetch absolute true time from public API
+        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
+        const data = await response.json();
+        
+        // Calculate difference between true time and local PC time
+        const realTimeMs = new Date(data.datetime).getTime();
+        const localTimeMs = Date.now();
+        timeOffset = realTimeMs - localTimeMs;
+        
+        console.log("UI Clock synced securely. Offset:", timeOffset, "ms");
+    } catch (error) {
+        console.error("Time sync failed. Falling back to local clock for UI.", error);
+    }
+}
+
+// Generates a Date object corrected by the offset to ignore PC clock tampering
+function getTrueDate() {
+    return new Date(Date.now() + timeOffset);
+}
+
+// =====================================================
 // CENTRALIZED CHENNAI TIME FORMATTERS
 // =====================================================
 
@@ -32,10 +59,6 @@ function formatISTLongDate(dateObj) {
     });
 }
 
-function getLocalDate() {
-    return formatISTDate(new Date());
-}
-
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
@@ -54,11 +77,11 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if (!clock || !dateText) return;
 
-    const now = new Date();
+    // Use getTrueDate() so the UI clock ignores fake PC time
+    const now = getTrueDate();
     clock.innerText = formatISTTime(now);
     dateText.innerText = formatISTLongDate(now);
 }
-setInterval(updateClockAndDate, 1000);
 
 // ---------------- CALENDAR ----------------
 function generateCalendar() {
@@ -66,7 +89,8 @@ function generateCalendar() {
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    const now = new Date();
+    // Use getTrueDate() so the calendar highlights the real "today", not fake PC day
+    const now = getTrueDate();
     const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const istDate = new Date(istString);
     
@@ -727,7 +751,9 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const todayStr = formatISTDate(new Date()); 
+        // Use getTrueDate() so today's grouping string can't be tampered with
+        const trueNow = getTrueDate(); 
+        const todayStr = formatISTDate(trueNow); 
         
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -793,7 +819,7 @@ const TaskTracker = {
         if (!table || !filterDateInput) return;
 
         table.innerHTML = "";
-        if (!filterDateInput.value) filterDateInput.value = formatISTDate(new Date());
+        if (!filterDateInput.value) filterDateInput.value = formatISTDate(getTrueDate());
         const filterDate = filterDateInput.value;
 
         const selectedDateObj = new Date(filterDate + 'T00:00:00');
@@ -873,7 +899,7 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        const now = new Date();
+        const now = getTrueDate();
         const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
         const istDate = new Date(istString);
         
@@ -907,7 +933,7 @@ const TaskTracker = {
         const titleElement = document.getElementById("selectedDateTasksTitle");
         if(!table || !titleElement) return;
         
-        const now = new Date();
+        const now = getTrueDate();
         const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
         const istDate = new Date(istString);
         const year = istDate.getFullYear();
@@ -1177,13 +1203,23 @@ const TaskTracker = {
 
 window.TaskTracker = TaskTracker;
 
-window.onload = () => {
+// Wait for page AND time sync to finish before drawing the UI
+window.onload = async () => {
+    
+    // 1. Calculate tamper-proof UI clock offset
+    await syncRealTime(); 
+    
+    // 2. Safely initialize UI elements now that the DOM exists
     updateClockAndDate();
+    setInterval(updateClockAndDate, 1000);
     generateCalendar();
     loadHolidays();
+    
+    // 3. Setup Auth & Users
     populateEmployeeDropdown();
     TaskTracker.checkAuth();
 
+    // 4. Handle specific page views
     if (currentPage === "admin.html") {
         const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
         
