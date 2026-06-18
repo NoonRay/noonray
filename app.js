@@ -1217,43 +1217,41 @@ const TaskTracker = {
     }
 };
 
+// ... (keep all your existing functions above this line) ...
+
+// ... (keep all your existing functions above this line) ...
+
 window.TaskTracker = TaskTracker;
 
 window.onload = async () => {
-    // 1. Show a loading state so users know it's syncing
-    const clock = document.getElementById("clock");
-    if(clock) clock.innerText = "Syncing Clock...";
-
-    // 2. Perform the exact time synchronization
-    await syncUIClock(); 
-    
-    // 3. Initialize UI elements using the mathematically secure time
+    // 1. Initialize UI elements immediately so the page isn't blank
     updateClockAndDate();
     setInterval(updateClockAndDate, 1000);
     generateCalendar();
     loadHolidays();
-    
-    // 4. Setup Auth & Users
     populateEmployeeDropdown();
+    
+    // 2. Auth check
     TaskTracker.checkAuth();
 
-    // 5. Handle specific page views
+    // 3. Attempt time sync in the background
+    syncUIClock().then(() => {
+        console.log("Clock sync complete");
+    }).catch(err => {
+        console.warn("Clock sync failed, using local time:", err);
+    });
+
+    // 4. Handle page routing
     if (currentPage === "admin.html") {
         const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
-        
         if (savedView === "employeeDetails") {
             const savedEmpName = sessionStorage.getItem("currentEmployeeDetailName");
-            if (savedEmpName) {
-                TaskTracker.viewEmployeeDetails(savedEmpName);
-            } else {
-                TaskTracker.switchAdminView('employees'); 
-            }
+            if (savedEmpName) TaskTracker.viewEmployeeDetails(savedEmpName);
+            else TaskTracker.switchAdminView('employees'); 
         } else {
             TaskTracker.switchAdminView(savedView);
         }
-        
         TaskTracker.updateLeaveBadge(); 
-        
     } else if (currentPage === "employee.html") {
         const savedView = sessionStorage.getItem("currentEmployeeView") || "dashboard";
         TaskTracker.switchEmployeeView(savedView);
