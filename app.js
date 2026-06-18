@@ -32,6 +32,10 @@ function formatISTLongDate(dateObj) {
     });
 }
 
+function getLocalDate() {
+    return formatISTDate(new Date());
+}
+
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
@@ -50,14 +54,11 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if (!clock || !dateText) return;
 
-    // The UI clock uses the local system, but forces Chennai formatting.
-    // This is safe because DB writes rely exclusively on serverTimestamp().
     const now = new Date();
     clock.innerText = formatISTTime(now);
     dateText.innerText = formatISTLongDate(now);
 }
 setInterval(updateClockAndDate, 1000);
-updateClockAndDate();
 
 // ---------------- CALENDAR ----------------
 function generateCalendar() {
@@ -66,7 +67,6 @@ function generateCalendar() {
     if(!monthYear || !calendarDates) return;
 
     const now = new Date();
-    // Shift the Date specifically for calendar month/year calculations to IST
     const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const istDate = new Date(istString);
     
@@ -89,7 +89,6 @@ function generateCalendar() {
         calendarDates.appendChild(dayBox);
     }
 }
-generateCalendar();
 
 // ---------------- HOLIDAYS ----------------
 function loadHolidays(){
@@ -103,7 +102,6 @@ function loadHolidays(){
         holidayList.appendChild(li);
     });
 }
-loadHolidays();
 
 // ---------------- USERS ----------------
 const users = [
@@ -263,7 +261,7 @@ const TaskTracker = {
                 await addDoc(collection(db, "projects"), { 
                     name, 
                     description, 
-                    createdAt: serverTimestamp() // Secured
+                    createdAt: serverTimestamp() 
                 });
                 alert("Project Created");
                 this.cancelProjectEdit();
@@ -361,7 +359,7 @@ const TaskTracker = {
             } else {
                 taskData.status = "Not Started Yet";
                 taskData.remarks = "";
-                taskData.createdAt = serverTimestamp(); // Secured
+                taskData.createdAt = serverTimestamp(); 
                 await addDoc(collection(db,"tasks"), taskData);
                 alert("Task Assigned");
                 this.clearForm();
@@ -674,7 +672,6 @@ const TaskTracker = {
                 let checkOutText = '-';
                 let totalTimeText = '-';
 
-                // Securely render times from Server Timestamps
                 if (att.checkInServerTime) {
                     const ciDate = att.checkInServerTime.toDate();
                     checkInText = formatISTTime(ciDate);
@@ -730,7 +727,6 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        // We still need a local date string to query/group records easily by day in the UI
         const todayStr = formatISTDate(new Date()); 
         
         try {
@@ -752,7 +748,6 @@ const TaskTracker = {
                 if (existingDocId) {
                     alert("You have already checked in or marked leave for today."); return;
                 }
-                // Securely stamp Check-In with Firebase Server Time
                 await addDoc(collection(db, "attendance"), {
                     employee: user.name, 
                     dateStr: todayStr, 
@@ -777,7 +772,6 @@ const TaskTracker = {
                     alert("You have already checked out for today."); return;
                 }
 
-                // Securely stamp Check-Out with Firebase Server Time
                 await updateDoc(doc(db, "attendance", existingDocId), {
                     checkOutServerTime: serverTimestamp()
                 });
@@ -822,7 +816,6 @@ const TaskTracker = {
                     let checkOutText = '-';
                     let totalTimeText = '-';
 
-                    // Securely calculate exact time differences for Admin View
                     if (record.checkInServerTime) {
                         const ciDate = record.checkInServerTime.toDate();
                         checkInText = formatISTTime(ciDate);
@@ -1058,7 +1051,7 @@ const TaskTracker = {
                 toDate,
                 reason,
                 status: 'Pending',
-                appliedAtServerTime: serverTimestamp() // Secured
+                appliedAtServerTime: serverTimestamp() 
             });
             alert("Leave application submitted!");
             
@@ -1185,6 +1178,9 @@ const TaskTracker = {
 window.TaskTracker = TaskTracker;
 
 window.onload = () => {
+    updateClockAndDate();
+    generateCalendar();
+    loadHolidays();
     populateEmployeeDropdown();
     TaskTracker.checkAuth();
 
