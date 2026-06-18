@@ -2,46 +2,44 @@ import {
     db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
 } from "./firebase.js";
 
-// ---------------- TIME SYNCHRONIZATION (CHENNAI/IST) ----------------
+// ---------------- TIME SYNCHRONIZATION & IST ENFORCEMENT ----------------
 let timeOffset = 0;
 
 async function syncRealTime() {
     try {
-        // Fetch the exact current time specifically for the Chennai timezone
+        // Fetch absolute time to prevent employees from cheating via PC clock changes
         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
         const data = await response.json();
         
         const realTimeMs = new Date(data.datetime).getTime();
-        const localTimeMs = new Date().getTime();
+        const localTimeMs = Date.now();
         
-        // Calculate the difference between the true time and the computer's local time
         timeOffset = realTimeMs - localTimeMs;
-        console.log("Synchronized to Chennai Time. Offset:", timeOffset, "ms");
+        console.log("Clock synced. Offset:", timeOffset, "ms");
     } catch (error) {
-        console.error("Failed to sync true time. Falling back to system clock.", error);
+        console.error("API sync failed. Using PC clock but forcing Chennai timezone.", error);
     }
 }
 
-// Generates a Date object corrected by the offset
-function getTrueDate() {
-    return new Date(new Date().getTime() + timeOffset);
+// THE MAGIC FUNCTION: This creates a Date object forcefully shifted to Chennai time.
+// Even if the PC is in New York, calling .getHours() on this returns the Chennai hour.
+function getISTDate() {
+    // 1. Get current absolute time (applying offset if PC clock is tampered with)
+    const trueNow = new Date(Date.now() + timeOffset);
+    
+    // 2. Format it into an exact Chennai timezone string (e.g., "6/18/2026, 10:05:00 PM")
+    const istString = trueNow.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    
+    // 3. Create a fake local Date object using those Chennai numbers. 
+    return new Date(istString);
 }
 
 // ---------------- DATE FORMATTING ----------------
 function getLocalDate() {
-    const now = getTrueDate();
-    
-    // Force the extraction of Year, Month, and Day strictly in IST
-    const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
-    const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
-    
-    let year, month, day;
-    parts.forEach(p => {
-        if (p.type === 'year') year = p.value;
-        if (p.type === 'month') month = p.value;
-        if (p.type === 'day') day = p.value;
-    });
-    
+    const now = getISTDate(); // Use the shifted IST Date
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
@@ -49,20 +47,13 @@ function getLocalDate() {
 function isWorkingDay(date) {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
     
-    // Sundays are strictly non-working
     if (dayOfWeek === 0) return false;
     
-    // For Saturdays, check if it is odd or even
     if (dayOfWeek === 6) {
         const dateNum = date.getDate();
-        // Calculate which Saturday of the month it is (1st, 2nd, 3rd, 4th, 5th)
         const nthSaturday = Math.ceil(dateNum / 7);
-        // If it's an odd Saturday (1, 3, 5), return true (working day)
-        // If it's an even Saturday (2, 4), return false (non-working day)
         return nthSaturday % 2 !== 0;
     }
-    
-    // Monday through Friday are working days
     return true; 
 }
 
@@ -72,21 +63,13 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if(!clock || !dateText) return;
 
-    const now = getTrueDate();
-    // Force the live display to show Asia/Kolkata time
+    const now = getISTDate(); // Use the shifted IST Date
+    
     clock.innerText = now.toLocaleTimeString("en-US", { 
-        timeZone: "Asia/Kolkata", 
-        hour: "2-digit", 
-        minute: "2-digit", 
-        second: "2-digit", 
-        hour12: true 
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true 
     });
     dateText.innerText = now.toLocaleDateString("en-US", { 
-        timeZone: "Asia/Kolkata", 
-        weekday: "long", 
-        year: "numeric", 
-        month: "long", 
-        day: "numeric" 
+        weekday: "long", year: "numeric", month: "long", day: "numeric" 
     });
 }
 setInterval(updateClockAndDate, 1000);
@@ -97,22 +80,10 @@ function generateCalendar(){
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    // Use the synchronized date for the calendar generation
-    const now = getTrueDate();
-    
-    // Extract IST specific month and year
-    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'numeric', day: 'numeric' });
-    const parts = formatter.formatToParts(now);
-    let yearStr, monthStr, dayStr;
-    parts.forEach(p => {
-        if(p.type === 'year') yearStr = p.value;
-        if(p.type === 'month') monthStr = p.value;
-        if(p.type === 'day') dayStr = p.value;
-    });
-
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10) - 1; // 0-indexed
-    const currentDay = parseInt(dayStr, 10);
+    const now = getISTDate(); // Use the shifted IST Date
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const currentDay = now.getDate();
 
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     
@@ -450,7 +421,7 @@ const TaskTracker = {
     async renderAdminTasks(){
         const table = document.getElementById("adminTaskTable");
         if(!table) return;
-        table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>Loading tasks...</td></tr>";
+        table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px; color: white;'>Loading tasks...</td></tr>";
 
         try {
             const snapshot = await getDocs(collection(db,"tasks"));
@@ -473,7 +444,7 @@ const TaskTracker = {
 
             // If database is empty
             if (Object.keys(tasksByProject).length === 0) {
-                table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px; color: #64748b;'>No tasks assigned yet.</td></tr>";
+                table.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px; color: #e2e8f0;'>No tasks assigned yet.</td></tr>";
                 return;
             }
 
@@ -486,12 +457,12 @@ const TaskTracker = {
                     return (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99);
                 });
 
-                // Add a bold, stylized separator row for the Project header
+                // Add a bold, stylized separator row for the Project header (Darkened background for white text)
                 table.innerHTML += `
-                    <tr style="background-color: #f8fafc; border-top: 3px solid #cbd5e1; border-bottom: 2px solid #e2e8f0;">
-                        <td colspan="7" style="padding: 12px 15px; font-size: 16px; font-weight: bold; color: #0f172a; text-align: left;">
+                    <tr style="background-color: #334155; border-top: 3px solid #475569; border-bottom: 2px solid #1e293b;">
+                        <td colspan="7" style="padding: 12px 15px; font-size: 16px; font-weight: bold; color: #ffffff; text-align: left;">
                             📁 ${project} 
-                            <span style="font-size: 12px; font-weight: normal; color: #64748b; margin-left: 10px; background: #e2e8f0; padding: 4px 10px; border-radius: 12px;">
+                            <span style="font-size: 12px; font-weight: normal; color: #ffffff; margin-left: 10px; background: #475569; padding: 4px 10px; border-radius: 12px;">
                                 ${tasks.length} Task${tasks.length > 1 ? 's' : ''}
                             </span>
                         </td>
@@ -516,16 +487,16 @@ const TaskTracker = {
                         statusBadge = `<span style="background:#64748b; color:white; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${task.status}</span>`;
                     }
 
-                    // Build standard row
+                    // Build standard row with pure white and brightened text colors
                     table.innerHTML += `
                     <tr>
-                        <td style="font-weight: 500; color: #1e293b; padding-left: 20px;">${task.title}</td>
-                        <td style="color: #64748b; font-size: 13px;">${task.project || '-'}</td>
-                        <td style="font-weight: bold; color: #3b82f6;">${task.employee}</td>
-                        <td style="font-size: 12px; color: #475569;">S: ${task.startDate || 'N/A'}<br>E: ${task.endDate || 'N/A'}</td>
+                        <td style="font-weight: 500; color: #ffffff; padding-left: 20px;">${task.title}</td>
+                        <td style="color: #e2e8f0; font-size: 13px;">${task.project || '-'}</td>
+                        <td style="font-weight: bold; color: #60a5fa;">${task.employee}</td>
+                        <td style="font-size: 12px; color: #e2e8f0;">S: ${task.startDate || 'N/A'}<br>E: ${task.endDate || 'N/A'}</td>
                         <td>${statusBadge}</td>
-                        <td style="font-size: 13px; color: #475569; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${task.remarks || ''}">
-                            ${task.remarks || '<em style="color:#cbd5e1;">None</em>'}
+                        <td style="font-size: 13px; color: #e2e8f0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${task.remarks || ''}">
+                            ${task.remarks || '<em style="color:#94a3b8;">None</em>'}
                         </td>
                         <td>
                             <button class="action-btn edit-btn" style="padding: 6px 12px; margin-right: 4px;" onclick="TaskTracker.editTask('${taskId}', '${escTitle}', '${escDesc}', '${escEmp}', '${escProj}', '${task.startDate}', '${task.endDate}')">Edit</button>
@@ -539,6 +510,7 @@ const TaskTracker = {
             table.innerHTML = "<tr><td colspan='7' style='text-align:center; color:#ef4444;'>Failed to load tasks. Check console.</td></tr>";
         }
     },
+
     async renderEmployeeTasks(){
         const table = document.getElementById("employeeTaskTable");
         if(!table) return;
@@ -744,15 +716,11 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const today = getLocalDate(); // Gets strict IST date
-        const trueNow = getTrueDate(); // Gets synchronized exact time
+        const trueNow = getISTDate(); // Get strictly shifted IST date object
+        const today = getLocalDate();
         
-        // Strict IST Formatting
         const nowTime = trueNow.toLocaleTimeString("en-US", { 
-            timeZone: "Asia/Kolkata", 
-            hour: "2-digit", 
-            minute: "2-digit", 
-            hour12: true 
+            hour: "2-digit", minute: "2-digit", hour12: true 
         });
         const nowMs = trueNow.getTime(); 
         
@@ -880,15 +848,9 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        // Use synchronized date for rendering
-        const now = getTrueDate();
+        const now = getISTDate(); // Using the shifted IST Date
         const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        
-        // Parse IST explicitly for "today"
-        const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric' });
-        let todayStr;
-        formatter.formatToParts(now).forEach(p => { if(p.type === 'day') todayStr = p.value; });
-        const today = parseInt(todayStr, 10);
+        const today = now.getDate();
 
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement("div");
@@ -914,7 +876,7 @@ const TaskTracker = {
         const titleElement = document.getElementById("selectedDateTasksTitle");
         if(!table || !titleElement) return;
         
-        const now = getTrueDate();
+        const now = getISTDate(); // Use the shifted IST Date
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const formattedDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
@@ -1185,7 +1147,6 @@ const TaskTracker = {
 
 window.TaskTracker = TaskTracker;
 
-// Update: Make window.onload async to await time synchronization
 window.onload = async () => {
     // 1. Sync time before doing anything else
     await syncRealTime(); 
