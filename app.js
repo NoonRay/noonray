@@ -2,11 +2,46 @@ import {
     db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
 } from "./firebase.js";
 
+// ---------------- TIME SYNCHRONIZATION (CHENNAI/IST) ----------------
+let timeOffset = 0;
+
+async function syncRealTime() {
+    try {
+        // Fetch the exact current time specifically for the Chennai timezone
+        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
+        const data = await response.json();
+        
+        const realTimeMs = new Date(data.datetime).getTime();
+        const localTimeMs = new Date().getTime();
+        
+        // Calculate the difference between the true time and the computer's local time
+        timeOffset = realTimeMs - localTimeMs;
+        console.log("Synchronized to Chennai Time. Offset:", timeOffset, "ms");
+    } catch (error) {
+        console.error("Failed to sync true time. Falling back to system clock.", error);
+    }
+}
+
+// Generates a Date object corrected by the offset
+function getTrueDate() {
+    return new Date(new Date().getTime() + timeOffset);
+}
+
+// ---------------- DATE FORMATTING ----------------
 function getLocalDate() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
+    const now = getTrueDate();
+    
+    // Force the extraction of Year, Month, and Day strictly in IST
+    const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
+    const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
+    
+    let year, month, day;
+    parts.forEach(p => {
+        if (p.type === 'year') year = p.value;
+        if (p.type === 'month') month = p.value;
+        if (p.type === 'day') day = p.value;
+    });
+    
     return `${year}-${month}-${day}`;
 }
 
@@ -37,12 +72,24 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if(!clock || !dateText) return;
 
-    const now = new Date();
-    clock.innerText = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
-    dateText.innerText = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const now = getTrueDate();
+    // Force the live display to show Asia/Kolkata time
+    clock.innerText = now.toLocaleTimeString("en-US", { 
+        timeZone: "Asia/Kolkata", 
+        hour: "2-digit", 
+        minute: "2-digit", 
+        second: "2-digit", 
+        hour12: true 
+    });
+    dateText.innerText = now.toLocaleDateString("en-US", { 
+        timeZone: "Asia/Kolkata", 
+        weekday: "long", 
+        year: "numeric", 
+        month: "long", 
+        day: "numeric" 
+    });
 }
 setInterval(updateClockAndDate, 1000);
-updateClockAndDate();
 
 // ---------------- CALENDAR ----------------
 function generateCalendar(){
@@ -50,9 +97,23 @@ function generateCalendar(){
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    // Use the synchronized date for the calendar generation
+    const now = getTrueDate();
+    
+    // Extract IST specific month and year
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'numeric', day: 'numeric' });
+    const parts = formatter.formatToParts(now);
+    let yearStr, monthStr, dayStr;
+    parts.forEach(p => {
+        if(p.type === 'year') yearStr = p.value;
+        if(p.type === 'month') monthStr = p.value;
+        if(p.type === 'day') dayStr = p.value;
+    });
+
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10) - 1; // 0-indexed
+    const currentDay = parseInt(dayStr, 10);
+
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     
     monthYear.innerText = `${monthNames[month]} ${year}`;
@@ -64,11 +125,10 @@ function generateCalendar(){
     for(let day = 1; day <= totalDays; day++){
         const dayBox = document.createElement("div");
         dayBox.innerText = day;
-        if(day === now.getDate()) dayBox.classList.add("active-date");
+        if(day === currentDay) dayBox.classList.add("active-date");
         calendarDates.appendChild(dayBox);
     }
 }
-generateCalendar();
 
 // ---------------- HOLIDAYS ----------------
 function loadHolidays(){
@@ -82,7 +142,6 @@ function loadHolidays(){
         holidayList.appendChild(li);
     });
 }
-loadHolidays();
 
 // ---------------- USERS ----------------
 const users = [
@@ -392,7 +451,7 @@ const TaskTracker = {
         const table = document.getElementById("adminTaskTable");
         if(!table) return;
         table.innerHTML = "";
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate(); // Use synchronized date
 
         try {
             const snapshot = await getDocs(collection(db,"tasks"));
@@ -594,7 +653,6 @@ const TaskTracker = {
             let attRecords = [];
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                // UPDATE: Ignore non-working days in the employee's personal attendance report
                 if(att.employee === employeeName && isWorkingDay(new Date(att.date + 'T00:00:00'))) {
                     attRecords.push(att);
                 }
@@ -642,9 +700,17 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const today = getLocalDate(); 
-        const nowTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-        const nowMs = Date.now(); 
+        const today = getLocalDate(); // Gets strict IST date
+        const trueNow = getTrueDate(); // Gets synchronized exact time
+        
+        // Strict IST Formatting
+        const nowTime = trueNow.toLocaleTimeString("en-US", { 
+            timeZone: "Asia/Kolkata", 
+            hour: "2-digit", 
+            minute: "2-digit", 
+            hour12: true 
+        });
+        const nowMs = trueNow.getTime(); 
         
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -706,9 +772,6 @@ const TaskTracker = {
         }
     },
 
-    // -------------------------------------------------------------
-    // UPDATED: ADMIN ATTENDANCE (Filter out non-working days)
-    // -------------------------------------------------------------
     async renderAdminAttendance() {
         const table = document.getElementById("adminAttendanceTable");
         const filterDateInput = document.getElementById("attendanceFilterDate");
@@ -718,7 +781,6 @@ const TaskTracker = {
         if (!filterDateInput.value) filterDateInput.value = getLocalDate();
         const filterDate = filterDateInput.value;
 
-        // Ensure the selected filter date is actually a working day
         const selectedDateObj = new Date(filterDate + 'T00:00:00');
         if (!isWorkingDay(selectedDateObj)) {
             table.innerHTML = `<tr><td colspan='6' style='text-align:center; color:#ef4444;'>${filterDate} is a Non-Working Day (Sunday or Even Saturday). No attendance required.</td></tr>`;
@@ -774,9 +836,15 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        const now = new Date();
+        // Use synchronized date for rendering
+        const now = getTrueDate();
         const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const today = now.getDate();
+        
+        // Parse IST explicitly for "today"
+        const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', day: 'numeric' });
+        let todayStr;
+        formatter.formatToParts(now).forEach(p => { if(p.type === 'day') todayStr = p.value; });
+        const today = parseInt(todayStr, 10);
 
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement("div");
@@ -802,7 +870,7 @@ const TaskTracker = {
         const titleElement = document.getElementById("selectedDateTasksTitle");
         if(!table || !titleElement) return;
         
-        const now = new Date();
+        const now = getTrueDate();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const formattedDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
@@ -1073,7 +1141,12 @@ const TaskTracker = {
 
 window.TaskTracker = TaskTracker;
 
-window.onload = () => {
+// Update: Make window.onload async to await time synchronization
+window.onload = async () => {
+    // 1. Sync time before doing anything else
+    await syncRealTime(); 
+    
+    // 2. Initialize application logic
     updateClockAndDate();
     generateCalendar();
     loadHolidays();
