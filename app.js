@@ -2,12 +2,11 @@ import {
     db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
 } from "./firebase.js";
 
-// ---------------- TIME SYNCHRONIZATION & IST ENFORCEMENT ----------------
+// ---------------- TIME SYNCHRONIZATION & STRICT IST ENFORCEMENT ----------------
 let timeOffset = 0;
 
 async function syncRealTime() {
     try {
-        // Fetch absolute time to prevent employees from cheating via PC clock changes
         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
         const data = await response.json();
         
@@ -15,40 +14,52 @@ async function syncRealTime() {
         const localTimeMs = Date.now();
         
         timeOffset = realTimeMs - localTimeMs;
-        console.log("Clock synced. Offset:", timeOffset, "ms");
+        console.log("Strict IST Clock synced. Offset:", timeOffset, "ms");
     } catch (error) {
         console.error("API sync failed. Using PC clock but forcing Chennai timezone.", error);
     }
 }
 
-// THE MAGIC FUNCTION: This creates a Date object forcefully shifted to Chennai time.
-// Even if the PC is in New York, calling .getHours() on this returns the Chennai hour.
-function getISTDate() {
-    // 1. Get current absolute time (applying offset if PC clock is tampered with)
-    const trueNow = new Date(Date.now() + timeOffset);
+// 1. Get the TRUE absolute global time (accounts for employee tampering with local PC clock)
+function getTrueAbsoluteDate() {
+    return new Date(Date.now() + timeOffset);
+}
+
+// 2. THE BULLETPROOF EXTRACTOR: Never rely on .getDate() or .getFullYear()
+// This forces Javascript to give us the exact digits for Chennai, regardless of PC timezone.
+function getISTComponents() {
+    const now = getTrueAbsoluteDate(); 
     
-    // 2. Format it into an exact Chennai timezone string (e.g., "6/18/2026, 10:05:00 PM")
-    const istString = trueNow.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata', 
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false
+    });
     
-    // 3. Create a fake local Date object using those Chennai numbers. 
-    return new Date(istString);
+    const parts = formatter.formatToParts(now);
+    let y, m, d;
+    parts.forEach(p => {
+        if (p.type === 'year') y = parseInt(p.value, 10);
+        if (p.type === 'month') m = parseInt(p.value, 10) - 1; // JS Months are 0-indexed
+        if (p.type === 'day') d = parseInt(p.value, 10);
+    });
+    
+    return { year: y, month: m, day: d };
 }
 
 // ---------------- DATE FORMATTING ----------------
 function getLocalDate() {
-    const now = getISTDate(); // Use the shifted IST Date
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
+    const ist = getISTComponents();
+    const year = ist.year;
+    const month = String(ist.month + 1).padStart(2, '0');
+    const day = String(ist.day).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
-    
     if (dayOfWeek === 0) return false;
-    
     if (dayOfWeek === 6) {
         const dateNum = date.getDate();
         const nthSaturday = Math.ceil(dateNum / 7);
@@ -63,15 +74,20 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if(!clock || !dateText) return;
 
-    const now = getISTDate(); // Use the shifted IST Date
+    const now = getTrueAbsoluteDate(); 
     
+    // Explicitly binding to Asia/Kolkata ensures it shows Chennai time on index.html immediately
     clock.innerText = now.toLocaleTimeString("en-US", { 
+        timeZone: "Asia/Kolkata",
         hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true 
     });
     dateText.innerText = now.toLocaleDateString("en-US", { 
+        timeZone: "Asia/Kolkata",
         weekday: "long", year: "numeric", month: "long", day: "numeric" 
     });
 }
+// Start immediately for index.html, then loop
+updateClockAndDate();
 setInterval(updateClockAndDate, 1000);
 
 // ---------------- CALENDAR ----------------
@@ -80,10 +96,11 @@ function generateCalendar(){
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    const now = getISTDate(); // Use the shifted IST Date
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const currentDay = now.getDate();
+    // Use strict IST components to prevent PC timezone shifts
+    const ist = getISTComponents();
+    const year = ist.year;
+    const month = ist.month;
+    const currentDay = ist.day;
 
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     
@@ -716,10 +733,12 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const trueNow = getISTDate(); // Get strictly shifted IST date object
+        const trueNow = getTrueAbsoluteDate(); 
         const today = getLocalDate();
         
+        // Explicit strict timezone enforcement during formatting
         const nowTime = trueNow.toLocaleTimeString("en-US", { 
+            timeZone: "Asia/Kolkata",
             hour: "2-digit", minute: "2-digit", hour12: true 
         });
         const nowMs = trueNow.getTime(); 
@@ -848,9 +867,13 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        const now = getISTDate(); // Using the shifted IST Date
-        const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const today = now.getDate();
+        // Strictly get the real Chennai date, ignoring the computer
+        const ist = getISTComponents();
+        const year = ist.year;
+        const month = ist.month;
+        const today = ist.day;
+        
+        const totalDays = new Date(year, month + 1, 0).getDate();
 
         for (let day = 1; day <= totalDays; day++) {
             const dayDiv = document.createElement("div");
@@ -876,9 +899,9 @@ const TaskTracker = {
         const titleElement = document.getElementById("selectedDateTasksTitle");
         if(!table || !titleElement) return;
         
-        const now = getISTDate(); // Use the shifted IST Date
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const ist = getISTComponents();
+        const year = ist.year;
+        const month = String(ist.month + 1).padStart(2, '0');
         const formattedDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
         
         titleElement.innerText = `Tasks for ${formattedDate}`;
