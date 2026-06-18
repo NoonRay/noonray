@@ -30,5 +30,6 @@ addDoc,
 getDocs,
 updateDoc,
 deleteDoc, // Exported here
-doc
+doc,
+serverTimestamp
 };
