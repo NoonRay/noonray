@@ -1,30 +1,32 @@
 import {
     db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
-} from "./firebase.js"; // Notice: serverTimestamp and getDoc are removed
+} from "./firebase.js";
 
-// ---------------- TIME SYNCHRONIZATION (VIA PUBLIC API) ----------------
+// ---------------- TIME SYNCHRONIZATION (VIA GITHUB) ----------------
 let timeOffset = 0;
 
 async function syncRealTime() {
     try {
-        // Fetch absolute time from server
-        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
-        const data = await response.json();
+        // Ping GitHub's API purely to read their highly accurate server Date header
+        const response = await fetch('https://api.github.com/', { method: 'HEAD' });
+        const githubDateStr = response.headers.get('Date');
         
-        // Use 'unixtime' (seconds) multiplied by 1000 to get exact UTC milliseconds.
-        const realTimeMs = data.unixtime * 1000; 
+        if (!githubDateStr) throw new Error("Could not read Date header from GitHub");
+        
+        // Convert GitHub's GMT string into milliseconds
+        const realTimeMs = new Date(githubDateStr).getTime();
         const localTimeMs = Date.now();
         
         timeOffset = realTimeMs - localTimeMs;
-        console.log("Strict IST Clock synced. Offset:", timeOffset, "ms");
+        console.log("Clock synced securely via GitHub. Offset:", timeOffset, "ms");
     } catch (error) {
-        console.error("API sync failed. Using PC clock but applying math shift.", error);
+        console.error("GitHub time sync failed. Falling back to shifted PC clock.", error);
     }
 }
 
 // THE BULLETPROOF FUNCTION: "Timezone Shift Hack"
 function getISTDate() {
-    // 1. Get exact absolute time (accounts for employee tampering with local PC clock)
+    // 1. Get exact absolute time (accounts for employee tampering with local PC clock + GitHub sync)
     const absoluteTime = Date.now() + timeOffset; 
     
     // 2. Get local browser timezone offset in milliseconds
@@ -33,7 +35,8 @@ function getISTDate() {
     // 3. IST is UTC +5:30 (which is 330 minutes)
     const istOffset = 330 * 60000; 
     
-    // By physically shifting the milliseconds, standard methods will output IST.
+    // By physically shifting the milliseconds, we trick the browser. 
+    // Now, standard methods like .getHours() or .toLocaleTimeString() WILL output IST.
     return new Date(absoluteTime + localOffset + istOffset);
 }
 
@@ -48,10 +51,9 @@ function getLocalDate() {
 
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
+    // Note: We don't shift this date because it's usually passed in directly from Firebase text strings
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
-    
     if (dayOfWeek === 0) return false;
-    
     if (dayOfWeek === 6) {
         const dateNum = date.getDate();
         const nthSaturday = Math.ceil(dateNum / 7);
