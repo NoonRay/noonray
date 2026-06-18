@@ -2,21 +2,25 @@ import {
     db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
 } from "./firebase.js";
 
-// ---------------- TIME SYNCHRONIZATION & STRICT IST ENFORCEMENT ----------------
+// ---------------- TIME SYNCHRONIZATION (VIA GITHUB) ----------------
 let timeOffset = 0;
 
 async function syncRealTime() {
     try {
-        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
-        const data = await response.json();
+        // Ping GitHub's API purely to read their server's Date header
+        const response = await fetch('https://api.github.com/', { method: 'HEAD' });
+        const githubDateStr = response.headers.get('Date');
         
-        const realTimeMs = new Date(data.datetime).getTime();
+        if (!githubDateStr) throw new Error("Could not read Date header from GitHub");
+        
+        // Convert GitHub's GMT string into milliseconds
+        const realTimeMs = new Date(githubDateStr).getTime();
         const localTimeMs = Date.now();
         
         timeOffset = realTimeMs - localTimeMs;
-        console.log("Strict IST Clock synced. Offset:", timeOffset, "ms");
+        console.log("Clock synced securely via GitHub. Offset:", timeOffset, "ms");
     } catch (error) {
-        console.error("API sync failed. Using PC clock but forcing Chennai timezone.", error);
+        console.error("GitHub time sync failed. Falling back to shifted PC clock.", error);
     }
 }
 
@@ -25,8 +29,7 @@ function getTrueAbsoluteDate() {
     return new Date(Date.now() + timeOffset);
 }
 
-// 2. THE BULLETPROOF EXTRACTOR: Never rely on .getDate() or .getFullYear()
-// This forces Javascript to give us the exact digits for Chennai, regardless of PC timezone.
+// 2. THE BULLETPROOF EXTRACTOR: Never rely on .getDate() or .getFullYear() directly
 function getISTComponents() {
     const now = getTrueAbsoluteDate(); 
     
