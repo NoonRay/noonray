@@ -1,30 +1,43 @@
 import {
-    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp
+    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc
 } from "./firebase.js";
 
 // =====================================================
-// TIME SYNCHRONIZATION (FOR UI CLOCK ONLY)
+// TIME SYNCHRONIZATION (TAMPER-PROOF UI CLOCK)
 // =====================================================
 let timeOffset = 0;
 
-async function syncRealTime() {
+async function syncUIClock() {
     try {
-        // Fetch absolute true time from public API
+        // Attempt 1: Fast Public Time API
         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
+        if (!response.ok) throw new Error("API Limit Reached");
         const data = await response.json();
         
-        // Calculate difference between true time and local PC time
-        const realTimeMs = new Date(data.datetime).getTime();
-        const localTimeMs = Date.now();
-        timeOffset = realTimeMs - localTimeMs;
+        const realTimeMs = data.unixtime * 1000;
+        timeOffset = realTimeMs - Date.now();
+        console.log("UI Clock synced via API. Offset:", timeOffset, "ms");
         
-        console.log("UI Clock synced securely. Offset:", timeOffset, "ms");
     } catch (error) {
-        console.error("Time sync failed. Falling back to local clock for UI.", error);
+        console.log("API failed, falling back to Firebase server sync...");
+        try {
+            // Attempt 2: Firebase Single Ping (Highly Reliable Backup)
+            const syncRef = await addDoc(collection(db, "time_sync"), { ping: serverTimestamp() });
+            const snap = await getDoc(syncRef);
+            if (snap.exists() && snap.data().ping) {
+                const serverTimeMs = snap.data().ping.toMillis();
+                timeOffset = serverTimeMs - Date.now();
+                console.log("UI Clock synced via Firebase. Offset:", timeOffset, "ms");
+            }
+            // Clean up the temp document
+            deleteDoc(syncRef).catch(e => e); 
+        } catch (firebaseErr) {
+            console.error("All sync methods failed. UI will use PC clock.", firebaseErr);
+        }
     }
 }
 
-// Generates a Date object corrected by the offset to ignore PC clock tampering
+// 1. Get the TRUE absolute global time (accounts for employee tampering with local PC clock)
 function getTrueDate() {
     return new Date(Date.now() + timeOffset);
 }
@@ -59,6 +72,11 @@ function formatISTLongDate(dateObj) {
     });
 }
 
+function getLocalDate() {
+    // ALWAYS use the offset date so grouping works correctly
+    return formatISTDate(getTrueDate());
+}
+
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
@@ -77,7 +95,7 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if (!clock || !dateText) return;
 
-    // Use getTrueDate() so the UI clock ignores fake PC time
+    // Use getTrueDate() so the UI clock completely ignores fake PC time
     const now = getTrueDate();
     clock.innerText = formatISTTime(now);
     dateText.innerText = formatISTLongDate(now);
@@ -89,7 +107,7 @@ function generateCalendar() {
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    // Use getTrueDate() so the calendar highlights the real "today", not fake PC day
+    // Use getTrueDate() so the calendar highlights the real "today"
     const now = getTrueDate();
     const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const istDate = new Date(istString);
@@ -751,9 +769,7 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        // Use getTrueDate() so today's grouping string can't be tampered with
-        const trueNow = getTrueDate(); 
-        const todayStr = formatISTDate(trueNow); 
+        const todayStr = getLocalDate(); 
         
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -819,7 +835,7 @@ const TaskTracker = {
         if (!table || !filterDateInput) return;
 
         table.innerHTML = "";
-        if (!filterDateInput.value) filterDateInput.value = formatISTDate(getTrueDate());
+        if (!filterDateInput.value) filterDateInput.value = getLocalDate();
         const filterDate = filterDateInput.value;
 
         const selectedDateObj = new Date(filterDate + 'T00:00:00');
@@ -1203,23 +1219,25 @@ const TaskTracker = {
 
 window.TaskTracker = TaskTracker;
 
-// Wait for page AND time sync to finish before drawing the UI
 window.onload = async () => {
+    // 1. Show a loading state so users know it's syncing
+    const clock = document.getElementById("clock");
+    if(clock) clock.innerText = "Syncing Clock...";
+
+    // 2. Perform the exact time synchronization
+    await syncUIClock(); 
     
-    // 1. Calculate tamper-proof UI clock offset
-    await syncRealTime(); 
-    
-    // 2. Safely initialize UI elements now that the DOM exists
+    // 3. Initialize UI elements using the mathematically secure time
     updateClockAndDate();
     setInterval(updateClockAndDate, 1000);
     generateCalendar();
     loadHolidays();
     
-    // 3. Setup Auth & Users
+    // 4. Setup Auth & Users
     populateEmployeeDropdown();
     TaskTracker.checkAuth();
 
-    // 4. Handle specific page views
+    // 5. Handle specific page views
     if (currentPage === "admin.html") {
         const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
         
