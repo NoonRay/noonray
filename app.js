@@ -1,76 +1,57 @@
 import {
-    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc
-} from "./firebase.js";
+    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
+} from "./firebase.js"; // Notice: serverTimestamp and getDoc are removed
 
-// ---------------- TIME SYNCHRONIZATION (VIA FIREBASE SERVER TIMESTAMP) ----------------
+// ---------------- TIME SYNCHRONIZATION (VIA PUBLIC API) ----------------
 let timeOffset = 0;
 
 async function syncRealTime() {
     try {
-        // 1. Write a temporary document with the authoritative Firebase server time
-        const syncRef = await addDoc(collection(db, "time_sync"), {
-            requestTime: serverTimestamp()
-        });
+        // Fetch absolute time from server
+        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
+        const data = await response.json();
         
-        // 2. Read the resolved timestamp back immediately
-        const snap = await getDoc(syncRef);
+        // Use 'unixtime' (seconds) multiplied by 1000 to get exact UTC milliseconds.
+        const realTimeMs = data.unixtime * 1000; 
+        const localTimeMs = Date.now();
         
-        if (snap.exists() && snap.data().requestTime) {
-            // .toMillis() converts the Firestore Timestamp object safely to Unix epoch milliseconds
-            const serverTimeMs = snap.data().requestTime.toMillis();
-            const localTimeMs = Date.now();
-            
-            timeOffset = serverTimeMs - localTimeMs;
-            console.log("Clock synced securely via Firebase Server Timestamp. Offset:", timeOffset, "ms");
-        }
-        
-        // 3. Clean up the temporary document asynchronously so it doesn't clutter the database
-        deleteDoc(syncRef).catch(err => console.error("Clean up error:", err));
-
+        timeOffset = realTimeMs - localTimeMs;
+        console.log("Strict IST Clock synced. Offset:", timeOffset, "ms");
     } catch (error) {
-        console.error("Firebase server time sync failed. Falling back to local clock.", error);
+        console.error("API sync failed. Using PC clock but applying math shift.", error);
     }
 }
 
-// 1. Get the TRUE absolute global time (accounts for employee tampering with local PC clock)
-function getTrueAbsoluteDate() {
-    return new Date(Date.now() + timeOffset);
-}
-
-// 2. THE BULLETPROOF EXTRACTOR: Never rely on .getDate() or .getFullYear() directly
-function getISTComponents() {
-    const now = getTrueAbsoluteDate(); 
+// THE BULLETPROOF FUNCTION: "Timezone Shift Hack"
+function getISTDate() {
+    // 1. Get exact absolute time (accounts for employee tampering with local PC clock)
+    const absoluteTime = Date.now() + timeOffset; 
     
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Kolkata', 
-        year: 'numeric', month: 'numeric', day: 'numeric',
-        hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false
-    });
+    // 2. Get local browser timezone offset in milliseconds
+    const localOffset = new Date().getTimezoneOffset() * 60000;
     
-    const parts = formatter.formatToParts(now);
-    let y, m, d;
-    parts.forEach(p => {
-        if (p.type === 'year') y = parseInt(p.value, 10);
-        if (p.type === 'month') m = parseInt(p.value, 10) - 1; // JS Months are 0-indexed
-        if (p.type === 'day') d = parseInt(p.value, 10);
-    });
+    // 3. IST is UTC +5:30 (which is 330 minutes)
+    const istOffset = 330 * 60000; 
     
-    return { year: y, month: m, day: d };
+    // By physically shifting the milliseconds, standard methods will output IST.
+    return new Date(absoluteTime + localOffset + istOffset);
 }
 
 // ---------------- DATE FORMATTING ----------------
 function getLocalDate() {
-    const ist = getISTComponents();
-    const year = ist.year;
-    const month = String(ist.month + 1).padStart(2, '0');
-    const day = String(ist.day).padStart(2, '0');
+    const now = getISTDate(); 
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
+    
     if (dayOfWeek === 0) return false;
+    
     if (dayOfWeek === 6) {
         const dateNum = date.getDate();
         const nthSaturday = Math.ceil(dateNum / 7);
@@ -85,17 +66,16 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if(!clock || !dateText) return;
 
-    const now = getTrueAbsoluteDate(); 
+    const now = getISTDate(); 
     
     clock.innerText = now.toLocaleTimeString("en-US", { 
-        timeZone: "Asia/Kolkata",
         hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true 
     });
     dateText.innerText = now.toLocaleDateString("en-US", { 
-        timeZone: "Asia/Kolkata",
         weekday: "long", year: "numeric", month: "long", day: "numeric" 
     });
 }
+// Start immediately for index.html, then loop
 updateClockAndDate();
 setInterval(updateClockAndDate, 1000);
 
@@ -105,10 +85,10 @@ function generateCalendar(){
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    const ist = getISTComponents();
-    const year = ist.year;
-    const month = ist.month;
-    const currentDay = ist.day;
+    const now = getISTDate(); 
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const currentDay = now.getDate();
 
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     
@@ -733,14 +713,13 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const trueNow = getTrueAbsoluteDate(); 
+        const trueNow = getISTDate(); 
         const today = getLocalDate();
         
         const nowTime = trueNow.toLocaleTimeString("en-US", { 
-            timeZone: "Asia/Kolkata",
             hour: "2-digit", minute: "2-digit", hour12: true 
         });
-        const nowMs = trueNow.getTime(); 
+        const nowMs = Date.now() + timeOffset; 
         
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -866,10 +845,10 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        const ist = getISTComponents();
-        const year = ist.year;
-        const month = ist.month;
-        const today = ist.day;
+        const now = getISTDate();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const today = now.getDate();
         
         const totalDays = new Date(year, month + 1, 0).getDate();
 
@@ -897,9 +876,9 @@ const TaskTracker = {
         const titleElement = document.getElementById("selectedDateTasksTitle");
         if(!table || !titleElement) return;
         
-        const ist = getISTComponents();
-        const year = ist.year;
-        const month = String(ist.month + 1).padStart(2, '0');
+        const now = getISTDate();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
         const formattedDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
         
         titleElement.innerText = `Tasks for ${formattedDate}`;
@@ -1169,10 +1148,10 @@ const TaskTracker = {
 window.TaskTracker = TaskTracker;
 
 window.onload = async () => {
-    // 1. Force authoritative sync via Firebase server timestamp document handshake
+    // 1. Sync time before doing anything else
     await syncRealTime(); 
     
-    // 2. Hydrate layouts and continue execution flow natively
+    // 2. Initialize application logic
     updateClockAndDate();
     generateCalendar();
     loadHolidays();
