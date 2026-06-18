@@ -1,57 +1,39 @@
 import {
-    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc
+    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp
 } from "./firebase.js";
 
-// ---------------- TIME SYNCHRONIZATION (VIA GITHUB) ----------------
-let timeOffset = 0;
+// =====================================================
+// CENTRALIZED CHENNAI TIME FORMATTERS
+// =====================================================
 
-async function syncRealTime() {
-    try {
-        // Ping GitHub's API purely to read their highly accurate server Date header
-        const response = await fetch('https://api.github.com/', { method: 'HEAD' });
-        const githubDateStr = response.headers.get('Date');
-        
-        if (!githubDateStr) throw new Error("Could not read Date header from GitHub");
-        
-        // Convert GitHub's GMT string into milliseconds
-        const realTimeMs = new Date(githubDateStr).getTime();
-        const localTimeMs = Date.now();
-        
-        timeOffset = realTimeMs - localTimeMs;
-        console.log("Clock synced securely via GitHub. Offset:", timeOffset, "ms");
-    } catch (error) {
-        console.error("GitHub time sync failed. Falling back to shifted PC clock.", error);
-    }
+function formatISTDate(dateObj) {
+    return dateObj.toLocaleDateString("en-CA", {
+        timeZone: "Asia/Kolkata"
+    });
 }
 
-// THE BULLETPROOF FUNCTION: "Timezone Shift Hack"
-function getISTDate() {
-    // 1. Get exact absolute time (accounts for employee tampering with local PC clock + GitHub sync)
-    const absoluteTime = Date.now() + timeOffset; 
-    
-    // 2. Get local browser timezone offset in milliseconds
-    const localOffset = new Date().getTimezoneOffset() * 60000;
-    
-    // 3. IST is UTC +5:30 (which is 330 minutes)
-    const istOffset = 330 * 60000; 
-    
-    // By physically shifting the milliseconds, we trick the browser. 
-    // Now, standard methods like .getHours() or .toLocaleTimeString() WILL output IST.
-    return new Date(absoluteTime + localOffset + istOffset);
+function formatISTTime(dateObj) {
+    return dateObj.toLocaleTimeString("en-US", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+    });
 }
 
-// ---------------- DATE FORMATTING ----------------
-function getLocalDate() {
-    const now = getISTDate(); 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+function formatISTLongDate(dateObj) {
+    return dateObj.toLocaleDateString("en-US", {
+        timeZone: "Asia/Kolkata",
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
 }
 
 // --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
-    // Note: We don't shift this date because it's usually passed in directly from Firebase text strings
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
     if (dayOfWeek === 0) return false;
     if (dayOfWeek === 6) {
@@ -66,31 +48,31 @@ function isWorkingDay(date) {
 function updateClockAndDate() {
     const clock = document.getElementById("clock");
     const dateText = document.getElementById("date");
-    if(!clock || !dateText) return;
+    if (!clock || !dateText) return;
 
-    const now = getISTDate(); 
-    
-    clock.innerText = now.toLocaleTimeString("en-US", { 
-        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true 
-    });
-    dateText.innerText = now.toLocaleDateString("en-US", { 
-        weekday: "long", year: "numeric", month: "long", day: "numeric" 
-    });
+    // The UI clock uses the local system, but forces Chennai formatting.
+    // This is safe because DB writes rely exclusively on serverTimestamp().
+    const now = new Date();
+    clock.innerText = formatISTTime(now);
+    dateText.innerText = formatISTLongDate(now);
 }
-// Start immediately for index.html, then loop
-updateClockAndDate();
 setInterval(updateClockAndDate, 1000);
+updateClockAndDate();
 
 // ---------------- CALENDAR ----------------
-function generateCalendar(){
+function generateCalendar() {
     const monthYear = document.getElementById("monthYear");
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    const now = getISTDate(); 
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const currentDay = now.getDate();
+    const now = new Date();
+    // Shift the Date specifically for calendar month/year calculations to IST
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    
+    const year = istDate.getFullYear();
+    const month = istDate.getMonth();
+    const currentDay = istDate.getDate();
 
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     
@@ -107,6 +89,7 @@ function generateCalendar(){
         calendarDates.appendChild(dayBox);
     }
 }
+generateCalendar();
 
 // ---------------- HOLIDAYS ----------------
 function loadHolidays(){
@@ -120,6 +103,7 @@ function loadHolidays(){
         holidayList.appendChild(li);
     });
 }
+loadHolidays();
 
 // ---------------- USERS ----------------
 const users = [
@@ -276,7 +260,11 @@ const TaskTracker = {
                 alert("Project Updated");
                 this.cancelProjectEdit();
             } else {
-                await addDoc(collection(db, "projects"), { name, description, createdAt: new Date().toISOString() });
+                await addDoc(collection(db, "projects"), { 
+                    name, 
+                    description, 
+                    createdAt: serverTimestamp() // Secured
+                });
                 alert("Project Created");
                 this.cancelProjectEdit();
             }
@@ -373,7 +361,7 @@ const TaskTracker = {
             } else {
                 taskData.status = "Not Started Yet";
                 taskData.remarks = "";
-                taskData.createdAt = new Date().toISOString();
+                taskData.createdAt = serverTimestamp(); // Secured
                 await addDoc(collection(db,"tasks"), taskData);
                 alert("Task Assigned");
                 this.clearForm();
@@ -668,23 +656,50 @@ const TaskTracker = {
             let attRecords = [];
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                if(att.employee === employeeName && isWorkingDay(new Date(att.date + 'T00:00:00'))) {
+                if(att.employee === employeeName) {
                     attRecords.push(att);
                 }
             });
             
-            attRecords.sort((a,b) => new Date(b.date) - new Date(a.date));
+            attRecords.sort((a,b) => {
+                const dateA = a.checkInServerTime ? a.checkInServerTime.toDate() : new Date(a.dateStr);
+                const dateB = b.checkInServerTime ? b.checkInServerTime.toDate() : new Date(b.dateStr);
+                return dateB - dateA;
+            });
 
             attRecords.forEach(att => {
                 const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
-                if(attendanceTable) {
+                
+                let checkInText = '-';
+                let checkOutText = '-';
+                let totalTimeText = '-';
+
+                // Securely render times from Server Timestamps
+                if (att.checkInServerTime) {
+                    const ciDate = att.checkInServerTime.toDate();
+                    checkInText = formatISTTime(ciDate);
+                }
+                
+                if (att.checkOutServerTime) {
+                    const coDate = att.checkOutServerTime.toDate();
+                    checkOutText = formatISTTime(coDate);
+                    
+                    if (att.checkInServerTime) {
+                        const diffMs = coDate.getTime() - att.checkInServerTime.toDate().getTime();
+                        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        totalTimeText = `${hours}h ${minutes}m`;
+                    }
+                }
+
+                if(attendanceTable && isWorkingDay(new Date(att.dateStr + 'T00:00:00'))) {
                     attendanceTable.innerHTML += `
                         <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.date}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.dateStr}</td>
                             <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkIn || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.checkOut || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${att.totalTime || '-'}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${checkInText}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${checkOutText}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${totalTimeText}</strong></td>
                         </tr>
                     `;
                 }
@@ -715,13 +730,8 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        const trueNow = getISTDate(); 
-        const today = getLocalDate();
-        
-        const nowTime = trueNow.toLocaleTimeString("en-US", { 
-            hour: "2-digit", minute: "2-digit", hour12: true 
-        });
-        const nowMs = Date.now() + timeOffset; 
+        // We still need a local date string to query/group records easily by day in the UI
+        const todayStr = formatISTDate(new Date()); 
         
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -730,7 +740,7 @@ const TaskTracker = {
 
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data.employee === user.name && data.date === today) {
+                if (data.employee === user.name && data.dateStr === todayStr) {
                     existingDocId = docSnap.id;
                     existingData = data;
                 }
@@ -742,15 +752,19 @@ const TaskTracker = {
                 if (existingDocId) {
                     alert("You have already checked in or marked leave for today."); return;
                 }
+                // Securely stamp Check-In with Firebase Server Time
                 await addDoc(collection(db, "attendance"), {
-                    employee: user.name, date: today, status: 'Present',
-                    checkIn: nowTime, checkInMs: nowMs, checkOut: '-', checkOutMs: null, totalTime: '-'
+                    employee: user.name, 
+                    dateStr: todayStr, 
+                    status: 'Present',
+                    checkInServerTime: serverTimestamp(),
+                    checkOutServerTime: null
                 });
                 if (msgElement) {
-                    msgElement.innerText = `Status: Checked In at ${nowTime}`;
+                    msgElement.innerText = `Status: Checked In (Processing securely...)`;
                     msgElement.style.color = '#10b981';
                 }
-                alert("Checked in successfully!");
+                alert("Checked in successfully! (Time recorded by server)");
             } 
             else if (action === 'CheckOut') {
                 if (!existingDocId) {
@@ -759,24 +773,20 @@ const TaskTracker = {
                 if (existingData.status === 'Leave') {
                     alert("You are marked on leave today."); return;
                 }
-                if (existingData.checkOutMs) {
+                if (existingData.checkOutServerTime) {
                     alert("You have already checked out for today."); return;
                 }
-                
-                const durationMs = nowMs - existingData.checkInMs;
-                const hours = Math.floor(durationMs / (1000 * 60 * 60));
-                const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-                const totalTimeString = `${hours}h ${minutes}m`;
 
+                // Securely stamp Check-Out with Firebase Server Time
                 await updateDoc(doc(db, "attendance", existingDocId), {
-                    checkOut: nowTime, checkOutMs: nowMs, totalTime: totalTimeString
+                    checkOutServerTime: serverTimestamp()
                 });
 
                 if (msgElement) {
-                    msgElement.innerText = `Status: Checked Out at ${nowTime}. Total: ${totalTimeString}`;
+                    msgElement.innerText = `Status: Checked Out (Calculating duration...)`;
                     msgElement.style.color = '#eab308';
                 }
-                alert(`Checked out successfully! Total worked: ${totalTimeString}`);
+                alert(`Checked out successfully! (Time recorded by server)`);
             } 
         } catch (error) {
             console.error(error); alert("Operation failed. Check connection.");
@@ -789,7 +799,7 @@ const TaskTracker = {
         if (!table || !filterDateInput) return;
 
         table.innerHTML = "";
-        if (!filterDateInput.value) filterDateInput.value = getLocalDate();
+        if (!filterDateInput.value) filterDateInput.value = formatISTDate(new Date());
         const filterDate = filterDateInput.value;
 
         const selectedDateObj = new Date(filterDate + 'T00:00:00');
@@ -804,17 +814,40 @@ const TaskTracker = {
 
             snapshot.forEach(docSnap => {
                 const record = docSnap.data();
-                if (record.date === filterDate) {
+                if (record.dateStr === filterDate) {
                     hasRecords = true;
                     const statusColor = record.status === 'Present' ? '#10b981' : '#ef4444';
+                    
+                    let checkInText = '-';
+                    let checkOutText = '-';
+                    let totalTimeText = '-';
+
+                    // Securely calculate exact time differences for Admin View
+                    if (record.checkInServerTime) {
+                        const ciDate = record.checkInServerTime.toDate();
+                        checkInText = formatISTTime(ciDate);
+                    }
+                    
+                    if (record.checkOutServerTime) {
+                        const coDate = record.checkOutServerTime.toDate();
+                        checkOutText = formatISTTime(coDate);
+                        
+                        if (record.checkInServerTime) {
+                            const diffMs = coDate.getTime() - record.checkInServerTime.toDate().getTime();
+                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                            totalTimeText = `${hours}h ${minutes}m`;
+                        }
+                    }
+
                     table.innerHTML += `
                         <tr>
                             <td><strong>${record.employee}</strong></td>
-                            <td>${record.date}</td>
+                            <td>${record.dateStr}</td>
                             <td><span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${record.status}</span></td>
-                            <td>${record.checkIn || '-'}</td>
-                            <td>${record.checkOut || '-'}</td>
-                            <td><strong>${record.totalTime || '-'}</strong></td>
+                            <td>${checkInText}</td>
+                            <td>${checkOutText}</td>
+                            <td><strong>${totalTimeText}</strong></td>
                         </tr>
                     `;
                 }
@@ -847,10 +880,13 @@ const TaskTracker = {
         if (!calendarGrid) return;
         calendarGrid.innerHTML = "";
         
-        const now = getISTDate();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        const today = now.getDate();
+        const now = new Date();
+        const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+        const istDate = new Date(istString);
+        
+        const year = istDate.getFullYear();
+        const month = istDate.getMonth();
+        const today = istDate.getDate();
         
         const totalDays = new Date(year, month + 1, 0).getDate();
 
@@ -878,9 +914,11 @@ const TaskTracker = {
         const titleElement = document.getElementById("selectedDateTasksTitle");
         if(!table || !titleElement) return;
         
-        const now = getISTDate();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const now = new Date();
+        const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+        const istDate = new Date(istString);
+        const year = istDate.getFullYear();
+        const month = String(istDate.getMonth() + 1).padStart(2, '0');
         const formattedDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
         
         titleElement.innerText = `Tasks for ${formattedDate}`;
@@ -1020,7 +1058,7 @@ const TaskTracker = {
                 toDate,
                 reason,
                 status: 'Pending',
-                appliedAt: new Date().toISOString()
+                appliedAtServerTime: serverTimestamp() // Secured
             });
             alert("Leave application submitted!");
             
@@ -1112,17 +1150,14 @@ const TaskTracker = {
                 
                 while (currentDate <= endDate) {
                     if (isWorkingDay(currentDate)) {
-                        const dateString = currentDate.toISOString().split('T')[0];
+                        const dateString = formatISTDate(currentDate);
                         
                         await addDoc(collection(db, "attendance"), {
                             employee: employeeName,
-                            date: dateString,
+                            dateStr: dateString,
                             status: 'Leave',
-                            checkIn: '-',
-                            checkInMs: null,
-                            checkOut: '-',
-                            checkOutMs: null,
-                            totalTime: '-'
+                            checkInServerTime: null,
+                            checkOutServerTime: null
                         });
                     }
                     
@@ -1149,14 +1184,7 @@ const TaskTracker = {
 
 window.TaskTracker = TaskTracker;
 
-window.onload = async () => {
-    // 1. Sync time before doing anything else
-    await syncRealTime(); 
-    
-    // 2. Initialize application logic
-    updateClockAndDate();
-    generateCalendar();
-    loadHolidays();
+window.onload = () => {
     populateEmployeeDropdown();
     TaskTracker.checkAuth();
 
