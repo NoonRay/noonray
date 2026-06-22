@@ -731,6 +731,13 @@ const TaskTracker = {
                     }
                 }
 
+                else {
+                        // FALLBACK FOR OLD FIREBASE DATA
+                        checkInText = att.checkInTime || att.checkIn || '-'; 
+                        checkOutText = att.checkOutTime || att.checkOut || '-';
+                        totalTimeText = att.totalTime || att.totalHours || '-';
+                    }
+
                 if(attendanceTable && isWorkingDay(new Date(att.dateStr + 'T00:00:00'))) {
                     attendanceTable.innerHTML += `
                         <tr>
@@ -850,7 +857,7 @@ const TaskTracker = {
 
             snapshot.forEach(docSnap => {
                 const record = docSnap.data();
-                if (record.dateStr === filterDate) {
+               if (record.dateStr === filterDate || formatISTDate(new Date(record.dateStr)) === filterDate) {
                     hasRecords = true;
                     const statusColor = record.status === 'Present' ? '#10b981' : '#ef4444';
                     
@@ -874,7 +881,13 @@ const TaskTracker = {
                             totalTimeText = `${hours}h ${minutes}m`;
                         }
                     }
-
+                    else {
+                        // FALLBACK FOR OLD FIREBASE DATA
+                        // This will only run if checkInServerTime is missing
+                        checkInText = record.checkInTime || record.checkIn || '-'; 
+                        checkOutText = record.checkOutTime || record.checkOut || '-';
+                        totalTimeText = record.totalTime || record.totalHours || '-';
+                        }
                     table.innerHTML += `
                         <tr>
                             <td><strong>${record.employee}</strong></td>
