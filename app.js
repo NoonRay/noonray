@@ -692,56 +692,99 @@ const TaskTracker = {
                 taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
             }
 
-            const attSnap = await getDocs(collection(db, "attendance"));
-            let attRecords = [];
+           const attSnap = await getDocs(collection(db, "attendance"));
+            let existingRecords = [];
+            let earliestDate = new Date(); // Default to today
+            
+            // 1. Gather existing records and find the employee's first day
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
                 if(att.employee === employeeName) {
-                    attRecords.push(att);
+                    existingRecords.push(att);
+                    const dStr = att.dateStr || att.date;
+                    if (dStr) {
+                        const d = new Date(dStr + 'T00:00:00');
+                        if (d < earliestDate) earliestDate = d;
+                    }
                 }
             });
             
-            attRecords.sort((a,b) => {
+            // 2. Map existing records by their date string for quick lookup
+            const attMap = {};
+            existingRecords.forEach(att => {
+                const displayDate = att.dateStr || att.date;
+                if (displayDate) attMap[displayDate] = att;
+            });
+
+            // 3. Generate a complete calendar from their earliest date to today
+            let allRecords = [];
+            let loopDate = new Date(earliestDate);
+            const todayStr = getLocalDate();
+            const endDate = new Date(todayStr + 'T00:00:00');
+
+            while (loopDate <= endDate) {
+                // Only generate rows for valid Working Days (skips Sundays/Even Saturdays)
+                if (isWorkingDay(loopDate)) {
+                    const dateString = formatISTDate(loopDate);
+                    
+                    if (attMap[dateString]) {
+                        // A manual Check-In or an Approved Leave exists
+                        allRecords.push(attMap[dateString]);
+                    } else {
+                        // Missing record on a working day -> Auto-Fill as Present
+                        allRecords.push({
+                            dateStr: dateString,
+                            status: 'Present',
+                            isAutoFill: true // Flag to render hyphens securely
+                        });
+                    }
+                }
+                loopDate.setDate(loopDate.getDate() + 1);
+            }
+
+            // 4. Sort the full, gapless list descending (newest first)
+            allRecords.sort((a, b) => {
                 const dateAStr = a.dateStr || a.date;
                 const dateBStr = b.dateStr || b.date;
-                const dateA = a.checkInServerTime ? a.checkInServerTime.toDate() : new Date(dateAStr);
-                const dateB = b.checkInServerTime ? b.checkInServerTime.toDate() : new Date(dateBStr);
+                const dateA = new Date(dateAStr + 'T00:00:00');
+                const dateB = new Date(dateBStr + 'T00:00:00');
                 return dateB - dateA;
             });
 
-            attRecords.forEach(att => {
+            // 5. Render the table
+            allRecords.forEach(att => {
                 const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
+                const displayDate = att.dateStr || att.date || 'Unknown Date';
                 
+                // Default to hyphens for auto-filled rows
                 let checkInText = '-';
                 let checkOutText = '-';
                 let totalTimeText = '-';
 
-                if (att.checkInServerTime) {
-                    const ciDate = att.checkInServerTime.toDate();
-                    checkInText = formatISTTime(ciDate);
-                }
-                
-                if (att.checkOutServerTime) {
-                    const coDate = att.checkOutServerTime.toDate();
-                    checkOutText = formatISTTime(coDate);
-                    
+                // Only process times if it's a real database record
+                if (!att.isAutoFill) {
                     if (att.checkInServerTime) {
-                        const diffMs = coDate.getTime() - att.checkInServerTime.toDate().getTime();
-                        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                        totalTimeText = `${hours}h ${minutes}m`;
-                    }
-                }
-
-                else {
-                        // FALLBACK FOR OLD FIREBASE DATA
+                        const ciDate = att.checkInServerTime.toDate();
+                        checkInText = formatISTTime(ciDate);
+                        
+                        if (att.checkOutServerTime) {
+                            const coDate = att.checkOutServerTime.toDate();
+                            checkOutText = formatISTTime(coDate);
+                            
+                            const diffMs = coDate.getTime() - att.checkInServerTime.toDate().getTime();
+                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                            totalTimeText = `${hours}h ${minutes}m`;
+                        }
+                    } else {
+                        // Fallback for older legacy data
                         checkInText = att.checkInTime || att.checkIn || '-'; 
                         checkOutText = att.checkOutTime || att.checkOut || '-';
                         totalTimeText = att.totalTime || att.totalHours || '-';
                     }
+                }
 
-                const displayDate = att.dateStr || att.date || 'Unknown Date';
-                if(attendanceTable && isWorkingDay(new Date(displayDate + 'T00:00:00'))) {
+                if(attendanceTable) { 
                     attendanceTable.innerHTML += `
                         <tr>
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${displayDate}</td>
@@ -753,9 +796,10 @@ const TaskTracker = {
                     `;
                 }
             });
-            if(attRecords.length === 0 && attendanceTable) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
-
-        } catch(e) { console.error(e); }
+            
+            if(allRecords.length === 0 && attendanceTable) {
+                attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
+            } catch(e) { console.error(e); }
     },
 
     downloadPDF() {
