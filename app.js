@@ -226,6 +226,7 @@ const TaskTracker = {
             populateEmployeeDropdown(); 
             this.renderAdminProjects(); 
             this.renderAdminTasks();    
+            this.updateEmployeeAttendanceUI();
         } else if (view === "employees" && views.employees) {
             views.employees.style.display = "block";
             if(links[1]) links[1].classList.add("active");
@@ -801,6 +802,61 @@ const TaskTracker = {
         html2pdf().set(opt).from(element).save();
     },
 
+    async updateEmployeeAttendanceUI() {
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+        if (!user) return;
+        const msgElement = document.getElementById("attendanceStatusMsg");
+        if (!msgElement) return;
+
+        const todayStr = getLocalDate();
+        try {
+            const snapshot = await getDocs(collection(db, "attendance"));
+            let todayRecord = null;
+            
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.employee === user.name && data.dateStr === todayStr) {
+                    todayRecord = data;
+                }
+            });
+
+            if (!todayRecord) {
+                msgElement.innerHTML = `Status: Not marked for today.`;
+                msgElement.style.color = '#cbd5e1';
+                return;
+            }
+
+            let statusHtml = `<span style="color: ${todayRecord.status === 'Present' ? '#10b981' : '#eab308'}; font-weight: bold;">Status: ${todayRecord.status}</span><br><br>`;
+            
+            if (todayRecord.checkInServerTime) {
+                const ciDate = todayRecord.checkInServerTime.toDate();
+                statusHtml += `<strong>Check In:</strong> <span style="color: white;">${formatISTTime(ciDate)}</span><br>`;
+                
+                if (todayRecord.checkOutServerTime) {
+                    const coDate = todayRecord.checkOutServerTime.toDate();
+                    statusHtml += `<strong>Check Out:</strong> <span style="color: white;">${formatISTTime(coDate)}</span><br>`;
+                    
+                    const diffMs = coDate.getTime() - ciDate.getTime();
+                    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                    statusHtml += `<br><strong style="color: #60a5fa;">Total Hours: ${hours}h ${minutes}m</strong>`;
+                } else {
+                    statusHtml += `<strong>Check Out:</strong> <span style="color: #94a3b8;">Not checked out yet</span>`;
+                }
+            } else {
+                statusHtml += `<strong>Check In:</strong> <span style="color: white;">${todayRecord.checkInTime || todayRecord.checkIn || '-'}</span><br>`;
+                statusHtml += `<strong>Check Out:</strong> <span style="color: white;">${todayRecord.checkOutTime || todayRecord.checkOut || '-'}</span><br>`;
+                statusHtml += `<br><strong style="color: #60a5fa;">Total Hours: ${todayRecord.totalTime || todayRecord.totalHours || '-'}</strong>`;
+            }
+
+            msgElement.innerHTML = statusHtml;
+            msgElement.style.lineHeight = "1.6";
+
+        } catch (error) {
+            console.error(error);
+        }
+    },
+
     async handleAttendance(action) {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
@@ -833,11 +889,8 @@ const TaskTracker = {
                     checkInServerTime: serverTimestamp(),
                     checkOutServerTime: null
                 });
-                if (msgElement) {
-                    msgElement.innerText = `Status: Checked In (Processing securely...)`;
-                    msgElement.style.color = '#10b981';
-                }
                 alert("Checked in successfully! (Time recorded by server)");
+                this.updateEmployeeAttendanceUI();
             } 
             else if (action === 'CheckOut') {
                 if (!existingDocId) {
@@ -854,11 +907,8 @@ const TaskTracker = {
                     checkOutServerTime: serverTimestamp()
                 });
 
-                if (msgElement) {
-                    msgElement.innerText = `Status: Checked Out (Calculating duration...)`;
-                    msgElement.style.color = '#eab308';
-                }
                 alert(`Checked out successfully! (Time recorded by server)`);
+                this.updateEmployeeAttendanceUI();
             } 
         } catch (error) {
             console.error(error); alert("Operation failed. Check connection.");
@@ -1054,6 +1104,7 @@ const TaskTracker = {
             dashboard.style.display = "block";
             if(links[0]) links[0].classList.add("active");
             this.renderEmployeeTasks();
+            this.updateEmployeeAttendanceUI();
         }
     },
 
