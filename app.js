@@ -702,8 +702,10 @@ const TaskTracker = {
             });
             
             attRecords.sort((a,b) => {
-                const dateA = a.checkInServerTime ? a.checkInServerTime.toDate() : new Date(a.dateStr);
-                const dateB = b.checkInServerTime ? b.checkInServerTime.toDate() : new Date(b.dateStr);
+                const dateAStr = a.dateStr || a.date;
+                const dateBStr = b.dateStr || b.date;
+                const dateA = a.checkInServerTime ? a.checkInServerTime.toDate() : new Date(dateAStr);
+                const dateB = b.checkInServerTime ? b.checkInServerTime.toDate() : new Date(dateBStr);
                 return dateB - dateA;
             });
 
@@ -738,10 +740,11 @@ const TaskTracker = {
                         totalTimeText = att.totalTime || att.totalHours || '-';
                     }
 
-                if(attendanceTable && isWorkingDay(new Date(att.dateStr + 'T00:00:00'))) {
+                const displayDate = att.dateStr || att.date || 'Unknown Date';
+                if(attendanceTable && isWorkingDay(new Date(displayDate + 'T00:00:00'))) {
                     attendanceTable.innerHTML += `
                         <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${att.dateStr}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${displayDate}</td>
                             <td style="border-bottom: 1px solid #e2e8f0; ${statusColor}"><strong>${att.status}</strong></td>
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${checkInText}</td>
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${checkOutText}</td>
