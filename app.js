@@ -799,9 +799,9 @@ const TaskTracker = {
             
             if(allRecords.length === 0 && attendanceTable) {
                 attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
-            } catch(e) { console.error(e); }
+            }
+        } catch(e) { console.error(e); }
     },
-
     downloadPDF() {
         const element = document.getElementById('pdfReportArea');
         const empNameElem = document.getElementById("reportEmployeeName");
