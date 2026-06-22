@@ -9,7 +9,6 @@ let timeOffset = 0;
 
 async function syncUIClock() {
     try {
-        // Attempt 1: Fast Public Time API
         const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
         if (!response.ok) throw new Error("API Limit Reached");
         const data = await response.json();
@@ -21,7 +20,6 @@ async function syncUIClock() {
     } catch (error) {
         console.log("API failed, falling back to Firebase server sync...");
         try {
-            // Attempt 2: Firebase Single Ping (Highly Reliable Backup)
             const syncRef = await addDoc(collection(db, "time_sync"), { ping: serverTimestamp() });
             const snap = await getDoc(syncRef);
             if (snap.exists() && snap.data().ping) {
@@ -29,7 +27,6 @@ async function syncUIClock() {
                 timeOffset = serverTimeMs - Date.now();
                 console.log("UI Clock synced via Firebase. Offset:", timeOffset, "ms");
             }
-            // Clean up the temp document
             deleteDoc(syncRef).catch(e => e); 
         } catch (firebaseErr) {
             console.error("All sync methods failed. UI will use PC clock.", firebaseErr);
@@ -37,7 +34,6 @@ async function syncUIClock() {
     }
 }
 
-// 1. Get the TRUE absolute global time (accounts for employee tampering with local PC clock)
 function getTrueDate() {
     return new Date(Date.now() + timeOffset);
 }
@@ -73,13 +69,11 @@ function formatISTLongDate(dateObj) {
 }
 
 function getLocalDate() {
-    // ALWAYS use the offset date so grouping works correctly
     return formatISTDate(getTrueDate());
 }
 
-// --- WORKING DAY LOGIC (Odd Saturdays = Working) ---
 function isWorkingDay(date) {
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
+    const dayOfWeek = date.getDay(); 
     if (dayOfWeek === 0) return false;
     if (dayOfWeek === 6) {
         const dateNum = date.getDate();
@@ -95,7 +89,6 @@ function updateClockAndDate() {
     const dateText = document.getElementById("date");
     if (!clock || !dateText) return;
 
-    // Use getTrueDate() so the UI clock completely ignores fake PC time
     const now = getTrueDate();
     clock.innerText = formatISTTime(now);
     dateText.innerText = formatISTLongDate(now);
@@ -107,7 +100,6 @@ function generateCalendar() {
     const calendarDates = document.getElementById("calendarDates");
     if(!monthYear || !calendarDates) return;
 
-    // Use getTrueDate() so the calendar highlights the real "today"
     const now = getTrueDate();
     const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const istDate = new Date(istString);
@@ -376,7 +368,7 @@ const TaskTracker = {
             });
         } catch(e) { 
             console.error(e); 
-            alert("Failed to save project."); 
+            alert("Failed to load projects."); 
         }
     },
 
@@ -692,11 +684,10 @@ const TaskTracker = {
                 taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
             }
 
-           const attSnap = await getDocs(collection(db, "attendance"));
+            const attSnap = await getDocs(collection(db, "attendance"));
             let existingRecords = [];
-            let earliestDate = new Date(); // Default to today
+            let earliestDate = new Date(); 
             
-            // 1. Gather existing records and find the employee's first day
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
                 if(att.employee === employeeName) {
@@ -709,40 +700,34 @@ const TaskTracker = {
                 }
             });
             
-            // 2. Map existing records by their date string for quick lookup
             const attMap = {};
             existingRecords.forEach(att => {
                 const displayDate = att.dateStr || att.date;
                 if (displayDate) attMap[displayDate] = att;
             });
 
-            // 3. Generate a complete calendar from their earliest date to today
             let allRecords = [];
             let loopDate = new Date(earliestDate);
             const todayStr = getLocalDate();
             const endDate = new Date(todayStr + 'T00:00:00');
 
             while (loopDate <= endDate) {
-                // Only generate rows for valid Working Days (skips Sundays/Even Saturdays)
                 if (isWorkingDay(loopDate)) {
                     const dateString = formatISTDate(loopDate);
                     
                     if (attMap[dateString]) {
-                        // A manual Check-In or an Approved Leave exists
                         allRecords.push(attMap[dateString]);
                     } else {
-                        // Missing record on a working day -> Auto-Fill as Present
                         allRecords.push({
                             dateStr: dateString,
                             status: 'Present',
-                            isAutoFill: true // Flag to render hyphens securely
+                            isAutoFill: true 
                         });
                     }
                 }
                 loopDate.setDate(loopDate.getDate() + 1);
             }
 
-            // 4. Sort the full, gapless list descending (newest first)
             allRecords.sort((a, b) => {
                 const dateAStr = a.dateStr || a.date;
                 const dateBStr = b.dateStr || b.date;
@@ -751,17 +736,14 @@ const TaskTracker = {
                 return dateB - dateA;
             });
 
-            // 5. Render the table
             allRecords.forEach(att => {
                 const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
                 const displayDate = att.dateStr || att.date || 'Unknown Date';
                 
-                // Default to hyphens for auto-filled rows
                 let checkInText = '-';
                 let checkOutText = '-';
                 let totalTimeText = '-';
 
-                // Only process times if it's a real database record
                 if (!att.isAutoFill) {
                     if (att.checkInServerTime) {
                         const ciDate = att.checkInServerTime.toDate();
@@ -777,7 +759,6 @@ const TaskTracker = {
                             totalTimeText = `${hours}h ${minutes}m`;
                         }
                     } else {
-                        // Fallback for older legacy data
                         checkInText = att.checkInTime || att.checkIn || '-'; 
                         checkOutText = att.checkOutTime || att.checkOut || '-';
                         totalTimeText = att.totalTime || att.totalHours || '-';
@@ -802,6 +783,7 @@ const TaskTracker = {
             }
         } catch(e) { console.error(e); }
     },
+
     downloadPDF() {
         const element = document.getElementById('pdfReportArea');
         const empNameElem = document.getElementById("reportEmployeeName");
@@ -904,7 +886,18 @@ const TaskTracker = {
 
             snapshot.forEach(docSnap => {
                 const record = docSnap.data();
-               if (record.dateStr === filterDate || formatISTDate(new Date(record.dateStr)) === filterDate) {
+                const rawDate = record.dateStr || record.date;
+                
+                if (!rawDate) return; 
+
+                let formattedRecordDate = '';
+                try {
+                    formattedRecordDate = formatISTDate(new Date(rawDate + 'T00:00:00'));
+                } catch(e) {
+                    formattedRecordDate = rawDate; 
+                }
+
+                if (rawDate === filterDate || formattedRecordDate === filterDate) {
                     hasRecords = true;
                     const statusColor = record.status === 'Present' ? '#10b981' : '#ef4444';
                     
@@ -915,30 +908,26 @@ const TaskTracker = {
                     if (record.checkInServerTime) {
                         const ciDate = record.checkInServerTime.toDate();
                         checkInText = formatISTTime(ciDate);
-                    }
-                    
-                    if (record.checkOutServerTime) {
-                        const coDate = record.checkOutServerTime.toDate();
-                        checkOutText = formatISTTime(coDate);
                         
-                        if (record.checkInServerTime) {
-                            const diffMs = coDate.getTime() - record.checkInServerTime.toDate().getTime();
+                        if (record.checkOutServerTime) {
+                            const coDate = record.checkOutServerTime.toDate();
+                            checkOutText = formatISTTime(coDate);
+                            
+                            const diffMs = coDate.getTime() - ciDate.getTime();
                             const hours = Math.floor(diffMs / (1000 * 60 * 60));
                             const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
                             totalTimeText = `${hours}h ${minutes}m`;
                         }
-                    }
-                    else {
-                        // FALLBACK FOR OLD FIREBASE DATA
-                        // This will only run if checkInServerTime is missing
+                    } else {
                         checkInText = record.checkInTime || record.checkIn || '-'; 
                         checkOutText = record.checkOutTime || record.checkOut || '-';
                         totalTimeText = record.totalTime || record.totalHours || '-';
-                        }
+                    }
+
                     table.innerHTML += `
                         <tr>
                             <td><strong>${record.employee}</strong></td>
-                            <td>${record.dateStr}</td>
+                            <td>${formattedRecordDate}</td>
                             <td><span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${record.status}</span></td>
                             <td>${checkInText}</td>
                             <td>${checkOutText}</td>
@@ -1277,31 +1266,23 @@ const TaskTracker = {
     }
 };
 
-// ... (keep all your existing functions above this line) ...
-
-// ... (keep all your existing functions above this line) ...
-
 window.TaskTracker = TaskTracker;
 
 window.onload = async () => {
-    // 1. Initialize UI elements immediately so the page isn't blank
     updateClockAndDate();
     setInterval(updateClockAndDate, 1000);
     generateCalendar();
     loadHolidays();
     populateEmployeeDropdown();
     
-    // 2. Auth check
     TaskTracker.checkAuth();
 
-    // 3. Attempt time sync in the background
     syncUIClock().then(() => {
         console.log("Clock sync complete");
     }).catch(err => {
         console.warn("Clock sync failed, using local time:", err);
     });
 
-    // 4. Handle page routing
     if (currentPage === "admin.html") {
         const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
         if (savedView === "employeeDetails") {
