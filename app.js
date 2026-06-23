@@ -148,6 +148,7 @@ const users = [
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
+    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee" },
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
     { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "intern" },
@@ -165,7 +166,7 @@ const users = [
     { email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
     { email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
     { email: "hansini", password: "NRIN018", name: "Hansini S", role: "intern" }
-];
+  ];
 
 function populateEmployeeDropdown() {
     const select = document.getElementById("employeeSelect");
