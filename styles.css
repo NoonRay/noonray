@@ -1,272 +1,272 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-body{
-font-family:'Inter',sans-serif;
-background:#050816;
-color:white;
-min-height:100vh;
-overflow-x:hidden;
-padding:20px;
+body {
+    font-family: 'Inter', sans-serif;
+    background: #050816;
+    color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 20px;
 }
 
-.background-glow{
-position:fixed;
-border-radius:50%;
-filter:blur(120px);
-z-index:-1;
+.background-glow {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: -1;
 }
 
-.glow-1{
-width:400px;
-height:400px;
-background:#6d28d9;
-top:-100px;
-left:-100px;
+.glow-1 {
+    width: 400px;
+    height: 400px;
+    background: #6d28d9;
+    top: -100px;
+    left: -100px;
 }
 
-.glow-2{
-width:400px;
-height:400px;
-background:#2563eb;
-bottom:-100px;
-right:-100px;
+.glow-2 {
+    width: 400px;
+    height: 400px;
+    background: #2563eb;
+    bottom: -100px;
+    right: -100px;
 }
 
-.navbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:20px 0;
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
 }
 
-.logo{
-font-size:38px;
-font-weight:700;
+.logo {
+    font-size: 38px;
+    font-weight: 700;
 }
 
-.logo span{
-color:#22c55e;
+.logo span {
+    color: #22c55e;
 }
 
-.login-btn,.btn{
-background:#2563eb;
-border:none;
-color:white;
-padding:14px 22px;
-border-radius:14px;
-cursor:pointer;
-font-weight:600;
+.login-btn, .btn {
+    background: #2563eb;
+    border: none;
+    color: white;
+    padding: 14px 22px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 600;
 }
 
-.hero{
-margin-top:120px;
-margin-bottom:70px;
+.hero {
+    margin-top: 120px;
+    margin-bottom: 70px;
 }
 
-.hero-left h1{
-font-size:60px;
-margin-bottom:20px;
+.hero-left h1 {
+    font-size: 60px;
+    margin-bottom: 20px;
 }
 
-.hero-left span{
-color:#22c55e;
+.hero-left span {
+    color: #22c55e;
 }
 
-.hero-main-text{
-font-size:30px;
-margin-bottom:20px;
+.hero-main-text {
+    font-size: 30px;
+    margin-bottom: 20px;
 }
 
-.hero-sub-text{
-color:#cbd5e1;
-line-height:1.8;
-max-width:800px;
+.hero-sub-text {
+    color: #cbd5e1;
+    line-height: 1.8;
+    max-width: 800px;
 }
 
-.dashboard-grid{
-display:grid;
-grid-template-columns:repeat(12,1fr);
-gap:20px;
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
 }
 
-.dashboard-card{
-background:rgba(15,23,42,0.8);
-border:1px solid rgba(255,255,255,0.08);
-border-radius:24px;
-padding:24px;
+.dashboard-card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 24px;
 }
 
-.live-time{
-grid-column:span 4;
+.live-time {
+    grid-column: span 4;
 }
 
-.calendar-card{
-grid-column:span 8;
+.calendar-card {
+    grid-column: span 8;
 }
 
 .calendar-days,
-.calendar-dates{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-gap:10px;
+.calendar-dates {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
 }
 
-.calendar-days{
-margin-bottom:15px;
+.calendar-days {
+    margin-bottom: 15px;
 }
 
-.calendar-dates div{
-background:#111827;
-padding:15px;
-border-radius:12px;
-text-align:center;
+.calendar-dates div {
+    background: #111827;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
 }
 
-.active-date{
-background:#2563eb !important;
+.active-date {
+    background: #2563eb !important;
 }
 
-.auth-page{
-display:flex;
-justify-content:center;
-align-items:center;
-min-height:100vh;
+.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
-.auth-card{
-width:420px;
-background:#0f172a;
-padding:30px;
-border-radius:20px;
+.auth-card {
+    width: 420px;
+    background: #0f172a;
+    padding: 30px;
+    border-radius: 20px;
 }
 
-.input{
-width:100%;
-padding:14px;
-border:none;
-border-radius:12px;
-margin-top:10px;
-margin-bottom:15px;
+.input {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    margin-top: 10px;
+    margin-bottom: 15px;
 }
 
-.textarea{
-height:120px;
-resize:none;
+.textarea {
+    height: 120px;
+    resize: none;
 }
 
-.label{
-display:block;
-margin-top:15px;
-margin-bottom:8px;
+.label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 8px;
 }
 
-.demo-box{
-margin-top:20px;
-background:#111827;
-padding:15px;
-border-radius:12px;
-color:#cbd5e1;
+.demo-box {
+    margin-top: 20px;
+    background: #111827;
+    padding: 15px;
+    border-radius: 12px;
+    color: #cbd5e1;
 }
 
-.layout{
-display:flex;
-gap:20px;
+.layout {
+    display: flex;
+    gap: 20px;
 }
 
-.sidebar{
-width:250px;
-background:#0f172a;
-padding:20px;
-border-radius:20px;
-min-height:100vh;
+.sidebar {
+    width: 250px;
+    background: #0f172a;
+    padding: 20px;
+    border-radius: 20px;
+    min-height: 100vh;
 }
 
-.sidebar a{
-display:block;
-color:white;
-text-decoration:none;
-margin-top:18px;
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    margin-top: 18px;
 }
 
-.main{
-flex:1;
+.main {
+    flex: 1;
 }
 
-.topbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:30px;
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
 }
 
-.card{
-background:#0f172a;
-padding:25px;
-border-radius:20px;
-margin-bottom:20px;
+.card {
+    background: #0f172a;
+    padding: 25px;
+    border-radius: 20px;
+    margin-bottom: 20px;
 }
 
-.task-table{
-width:100%;
-border-collapse:collapse;
-margin-top:20px;
+.task-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
 .task-table th,
-.task-table td{
-padding:14px;
-border-bottom:1px solid rgba(255,255,255,0.1);
-text-align:left;
+.task-table td {
+    padding: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
 }
 
-select{
-background:white;
+select {
+    background: white;
 }
 
-.full-btn{
-width:100%;
+.full-btn {
+    width: 100%;
 }
 
-.logout-btn{
-margin-top:30px;
-width:100%;
+.logout-btn {
+    margin-top: 30px;
+    width: 100%;
 }
 
-.status-select{
-padding:10px;
-border-radius:10px;
+.status-select {
+    padding: 10px;
+    border-radius: 10px;
 }
 
-.remark-box{
-padding:10px;
-border-radius:10px;
-width:100%;
-min-height: 42px; /* Matches standard input height */
-resize: vertical; /* Allows manual resizing if they want */
-overflow: hidden; /* Hides the scrollbar for the auto-expand effect */
-font-family: inherit; /* Keeps the text matching your site */
+.remark-box {
+    padding: 10px;
+    border-radius: 10px;
+    width: 100%;
+    min-height: 42px;
+    resize: vertical;
+    overflow: hidden;
+    font-family: inherit;
 }
 
-.save-btn{
-background:#22c55e;
-border:none;
-padding:10px 14px;
-border-radius:10px;
-color:white;
-cursor:pointer;
+.save-btn {
+    background: #22c55e;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
 }
 
-.login-text{
-margin:15px 0;
-color:#cbd5e1;
+.login-text {
+    margin: 15px 0;
+    color: #cbd5e1;
 }
+
 /* Custom properties for dates alignment & actions buttons */
 .date-row {
     display: flex;
@@ -288,7 +288,7 @@ color:#cbd5e1;
 }
 
 .edit-btn {
-    background: #eab308; /* Yellow */
+    background: #eab308;
 }
 
 .edit-btn:hover {
@@ -296,7 +296,7 @@ color:#cbd5e1;
 }
 
 .delete-btn {
-    background: #ef4444; /* Red */
+    background: #ef4444;
 }
 
 .delete-btn:hover {
@@ -304,12 +304,13 @@ color:#cbd5e1;
 }
 
 .cancel-btn {
-    background: #64748b; /* Slate gray */
+    background: #64748b;
 }
 
 .cancel-btn:hover {
     background: #475569;
 }
+
 /* Styling to ensure PDF print table renders correctly with black text on white background */
 #pdfReportArea {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -325,26 +326,27 @@ color:#cbd5e1;
 #pdfReportArea .task-table td {
     padding: 12px;
     text-align: left;
-    word-wrap: break-word;   /* Breaks long words so they don't overlap */
+    word-wrap: break-word;   
     word-break: break-word;  
-    white-space: normal;     /* Forces multi-line text */
-    vertical-align: top;     /* Keeps text aligned cleanly at the top */
+    white-space: normal;     
+    vertical-align: top;     
 }
 
 /* Assign exact percentages to Task Report columns to prevent squishing */
-#reportTaskTableWrapper th:nth-child(1) { width: 14%; } /* Project */
-#reportTaskTableWrapper th:nth-child(2) { width: 18%; } /* Task */
-#reportTaskTableWrapper th:nth-child(3) { width: 13%; } /* Start Date */
-#reportTaskTableWrapper th:nth-child(4) { width: 13%; } /* End Date */
-#reportTaskTableWrapper th:nth-child(5) { width: 12%; } /* Status */
-#reportTaskTableWrapper th:nth-child(6) { width: 30%; } /* Remarks (gets the most space) */
+#reportTaskTableWrapper th:nth-child(1) { width: 14%; } 
+#reportTaskTableWrapper th:nth-child(2) { width: 18%; } 
+#reportTaskTableWrapper th:nth-child(3) { width: 13%; } 
+#reportTaskTableWrapper th:nth-child(4) { width: 13%; } 
+#reportTaskTableWrapper th:nth-child(5) { width: 12%; } 
+#reportTaskTableWrapper th:nth-child(6) { width: 30%; } 
 
 /* Assign exact percentages to Attendance Report columns */
-#reportAttendanceTableWrapper th:nth-child(1) { width: 20%; } /* Date */
-#reportAttendanceTableWrapper th:nth-child(2) { width: 20%; } /* Status */
-#reportAttendanceTableWrapper th:nth-child(3) { width: 20%; } /* Check In */
-#reportAttendanceTableWrapper th:nth-child(4) { width: 20%; } /* Check Out */
-#reportAttendanceTableWrapper th:nth-child(5) { width: 20%; } /* Total Hours */
+#reportAttendanceTableWrapper th:nth-child(1) { width: 20%; } 
+#reportAttendanceTableWrapper th:nth-child(2) { width: 20%; } 
+#reportAttendanceTableWrapper th:nth-child(3) { width: 20%; } 
+#reportAttendanceTableWrapper th:nth-child(4) { width: 20%; } 
+#reportAttendanceTableWrapper th:nth-child(5) { width: 20%; } 
+
 /* --- CALENDAR GRID STYLES --- */
 .calendar-grid {
     display: grid;
