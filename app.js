@@ -708,18 +708,24 @@ const TaskTracker = {
                 if (displayDate) attMap[displayDate] = att;
             });
 
-            let allRecords = [];
+           let allRecords = [];
             let loopDate = new Date(earliestDate);
             const todayStr = getLocalDate();
             const endDate = new Date(todayStr + 'T00:00:00');
+
+            // Set the cutoff date to the 15th of the current month
+            const currentNow = getTrueDate();
+            const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
 
             while (loopDate <= endDate) {
                 if (isWorkingDay(loopDate)) {
                     const dateString = formatISTDate(loopDate);
                     
                     if (attMap[dateString]) {
+                        // Always show actual database records (Approved Leaves or manual Check-Ins)
                         allRecords.push(attMap[dateString]);
-                    } else {
+                    } else if (loopDate >= cutoffDate) {
+                        // Only auto-fill as Present if the date is the 15th or later
                         allRecords.push({
                             dateStr: dateString,
                             status: 'Present',
