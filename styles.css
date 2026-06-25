@@ -311,16 +311,40 @@ color:#cbd5e1;
     background: #475569;
 }
 /* Styling to ensure PDF print table renders correctly with black text on white background */
-#pdfReportArea .task-table th,
-#pdfReportArea .task-table td {
-    padding: 12px;
-    text-align: left;
-}
-
 #pdfReportArea {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* Force the table to respect exact widths and wrap text */
+#pdfReportArea .task-table {
+    table-layout: fixed; 
+    width: 100%;
+}
+
+#pdfReportArea .task-table th,
+#pdfReportArea .task-table td {
+    padding: 12px;
+    text-align: left;
+    word-wrap: break-word;   /* Breaks long words so they don't overlap */
+    word-break: break-word;  
+    white-space: normal;     /* Forces multi-line text */
+    vertical-align: top;     /* Keeps text aligned cleanly at the top */
+}
+
+/* Assign exact percentages to Task Report columns to prevent squishing */
+#reportTaskTableWrapper th:nth-child(1) { width: 14%; } /* Project */
+#reportTaskTableWrapper th:nth-child(2) { width: 18%; } /* Task */
+#reportTaskTableWrapper th:nth-child(3) { width: 13%; } /* Start Date */
+#reportTaskTableWrapper th:nth-child(4) { width: 13%; } /* End Date */
+#reportTaskTableWrapper th:nth-child(5) { width: 12%; } /* Status */
+#reportTaskTableWrapper th:nth-child(6) { width: 30%; } /* Remarks (gets the most space) */
+
+/* Assign exact percentages to Attendance Report columns */
+#reportAttendanceTableWrapper th:nth-child(1) { width: 20%; } /* Date */
+#reportAttendanceTableWrapper th:nth-child(2) { width: 20%; } /* Status */
+#reportAttendanceTableWrapper th:nth-child(3) { width: 20%; } /* Check In */
+#reportAttendanceTableWrapper th:nth-child(4) { width: 20%; } /* Check Out */
+#reportAttendanceTableWrapper th:nth-child(5) { width: 20%; } /* Total Hours */
 /* --- CALENDAR GRID STYLES --- */
 .calendar-grid {
     display: grid;
