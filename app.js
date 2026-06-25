@@ -797,9 +797,9 @@ const TaskTracker = {
             filename:     `${empName.replace(/\s+/g, '_')}_Task_Report.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' },
+            pagebreak:    { mode: ['css', 'legacy'], avoid: 'tr' }
         };
-
         html2pdf().set(opt).from(element).save();
     },
 
