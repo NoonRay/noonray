@@ -626,25 +626,58 @@ const TaskTracker = {
         
         const taskTable = document.getElementById("reportTaskTable");
         const attendanceTable = document.getElementById("reportAttendanceTable");
+        const leavesTable = document.getElementById("reportLeavesTable"); // ADDED
         if (taskTable) taskTable.innerHTML = "";
         if (attendanceTable) attendanceTable.innerHTML = "";
+        if (leavesTable) leavesTable.innerHTML = ""; // ADDED
 
         try {
             const leaveSnap = await getDocs(collection(db, "leaves"));
             let totalLeaveDays = 0;
+            let employeeLeavesForTable = []; // ADDED
+            
             leaveSnap.forEach(docSnap => {
                 const l = docSnap.data();
-                if(l.employee === employeeName && l.status === 'Approved') {
-                    let currentDate = new Date(l.fromDate + 'T00:00:00');
-                    const endDate = new Date(l.toDate + 'T00:00:00');
-                    while(currentDate <= endDate) {
-                        if (isWorkingDay(currentDate)) {
-                            totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                if(l.employee === employeeName) {
+                    employeeLeavesForTable.push(l); // ADDED: Save for the table
+                    
+                    if (l.status === 'Approved') {
+                        let currentDate = new Date(l.fromDate + 'T00:00:00');
+                        const endDate = new Date(l.toDate + 'T00:00:00');
+                        while(currentDate <= endDate) {
+                            if (isWorkingDay(currentDate)) {
+                                totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                            }
+                            currentDate.setDate(currentDate.getDate() + 1);
                         }
-                        currentDate.setDate(currentDate.getDate() + 1);
                     }
                 }
             });
+
+            // ADDED: Generate the HTML rows for the Leaves table
+            employeeLeavesForTable.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
+            employeeLeavesForTable.forEach(l => {
+                let statusColor = "black";
+                if(l.status === 'Approved') statusColor = "#10b981"; 
+                if(l.status === 'Rejected') statusColor = "#ef4444"; 
+                if(l.status === 'Pending') statusColor = "#eab308";
+                
+                if (leavesTable) {
+                    leavesTable.innerHTML += `
+                        <tr>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.dayType}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.fromDate}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.toDate}</td>
+                            <td style="color: ${statusColor}; border-bottom: 1px solid #e2e8f0;"><strong>${l.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.reason}</td>
+                        </tr>
+                    `;
+                }
+            });
+            if(employeeLeavesForTable.length === 0 && leavesTable) {
+                leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No leaves requested.</td></tr>";
+            }
 
             const reportDateElem = document.getElementById("reportDate");
             if (reportDateElem) {
@@ -1004,15 +1037,21 @@ const TaskTracker = {
         const titleType = document.getElementById("reportTitleType");
         const taskWrapper = document.getElementById("reportTaskTableWrapper");
         const attWrapper = document.getElementById("reportAttendanceTableWrapper");
+        const leavesWrapper = document.getElementById("reportLeavesTableWrapper");
+
+        if (taskWrapper) taskWrapper.style.display = "none";
+        if (attWrapper) attWrapper.style.display = "none";
+        if (leavesWrapper) leavesWrapper.style.display = "none";
 
         if (reportType === 'tasks') {
             if(titleType) titleType.innerText = "Task";
             if(taskWrapper) taskWrapper.style.display = "table";
-            if(attWrapper) attWrapper.style.display = "none";
-        } else {
+        } else if (reportType === 'attendance') {
             if(titleType) titleType.innerText = "Attendance";
-            if(taskWrapper) taskWrapper.style.display = "none";
             if(attWrapper) attWrapper.style.display = "table";
+        } else if (reportType === 'leaves') {
+            if(titleType) titleType.innerText = "Leaves";
+            if(leavesWrapper) leavesWrapper.style.display = "table";
         }
     },
 
