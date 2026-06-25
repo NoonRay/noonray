@@ -1370,16 +1370,32 @@ function triggerFirecrackers() {
     const container = document.getElementById("firecracker-container");
     if (!container) return;
 
+    // Start in the center of the screen until the user moves the mouse
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+
+    // Track the cursor's exact position
+    document.addEventListener("mousemove", (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    // Spawn a firecracker every 400 milliseconds
     setInterval(() => {
         const boom = document.createElement("div");
         boom.className = "firecracker";
-        boom.style.left = Math.random() * window.innerWidth + "px";
-        boom.style.top = Math.random() * window.innerHeight + "px";
+        
+        // Add a slight random scatter (+/- 40px) so they pop AROUND the cursor naturally
+        const offsetX = (Math.random() - 0.5) * 80; 
+        const offsetY = (Math.random() - 0.5) * 80;
+
+        boom.style.left = (mouseX + offsetX) + "px";
+        boom.style.top = (mouseY + offsetY) + "px";
         container.appendChild(boom);
         
-        // Remove from DOM after animation
+        // Remove from DOM after animation finishes
         setTimeout(() => boom.remove(), 1000);
-    }, 2000); // Pops every 2 seconds
+    }, 400); // 400ms creates a nice trail as you move!
 }
 
 window.onload = async () => {
