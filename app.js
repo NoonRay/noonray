@@ -1365,12 +1365,34 @@ const TaskTracker = {
 
 window.TaskTracker = TaskTracker;
 
+// --- FIRECRACKER EFFECT ---
+function triggerFirecrackers() {
+    const container = document.getElementById("firecracker-container");
+    if (!container) return;
+
+    setInterval(() => {
+        const boom = document.createElement("div");
+        boom.className = "firecracker";
+        boom.style.left = Math.random() * window.innerWidth + "px";
+        boom.style.top = Math.random() * window.innerHeight + "px";
+        container.appendChild(boom);
+        
+        // Remove from DOM after animation
+        setTimeout(() => boom.remove(), 1000);
+    }, 2000); // Pops every 2 seconds
+}
+
 window.onload = async () => {
     updateClockAndDate();
     setInterval(updateClockAndDate, 1000);
     generateCalendar();
     loadHolidays();
     populateEmployeeDropdown();
+
+    // ADDED: Only trigger firecrackers on the main landing page
+    if (currentPage === "index.html" || currentPage === "") {
+        triggerFirecrackers();
+    }
     
     TaskTracker.checkAuth();
 
