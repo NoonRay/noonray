@@ -346,6 +346,11 @@ select {
 #reportAttendanceTableWrapper th:nth-child(3) { width: 20%; } 
 #reportAttendanceTableWrapper th:nth-child(4) { width: 20%; } 
 #reportAttendanceTableWrapper th:nth-child(5) { width: 20%; } 
+/* Prevent table rows from splitting across PDF pages */
+#pdfReportArea .task-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
 
 /* --- CALENDAR GRID STYLES --- */
 .calendar-grid {
