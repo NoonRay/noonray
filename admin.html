@@ -154,6 +154,7 @@
         <select id="reportTypeSelect" class="input" style="width: 200px; margin-top: 0;" onchange="TaskTracker.toggleEmployeeReportView()">
             <option value="tasks">Tasks Report</option>
             <option value="attendance">Attendance Report</option>
+            <option value="leaves">Leaves Report</option>
         </select>
         
         <button class="btn" style="background: #10b981;" onclick="TaskTracker.downloadPDF()">
@@ -192,6 +193,20 @@
                 </tr>
             </thead>
             <tbody id="reportAttendanceTable"></tbody>
+        </table>
+
+        <table class="task-table" id="reportLeavesTableWrapper" style="color: black; display: none;">
+            <thead>
+                <tr style="background-color: #f1f5f9;">
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Leave Type</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Day Type</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">From</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">To</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Status</th>
+                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Reason</th>
+                </tr>
+            </thead>
+            <tbody id="reportLeavesTable"></tbody>
         </table>
     </div>
 </div>
