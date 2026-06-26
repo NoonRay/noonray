@@ -153,7 +153,6 @@ const users = [
     { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "intern" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "intern" },
-    { email: "sreenandini", password: "NRIN06", name: "Sreenandini M", role: "intern" },
     { email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
     { email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
     { email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
@@ -165,7 +164,8 @@ const users = [
     { email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
     { email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
     { email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
-    { email: "hansini", password: "NRIN018", name: "Hansini S", role: "intern" }
+    { email: "hansini", password: "NRIN018", name: "Hansini S", role: "intern" },
+    { email: "arun", password: "NRIN019", name: "Arun M", role: "intern" }
   ];
 
 function populateEmployeeDropdown() {
