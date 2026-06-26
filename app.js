@@ -164,7 +164,7 @@ const users = [
     { email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
     { email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
     { email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
-    { email: "hansini", password: "NRIN018", name: "Hansini S", role: "intern" },
+    { email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
     { email: "arun", password: "NRIN019", name: "Arun M", role: "intern" }
   ];
 
