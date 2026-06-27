@@ -758,10 +758,10 @@ const TaskTracker = {
                         // Always show actual database records (Approved Leaves or manual Check-Ins)
                         allRecords.push(attMap[dateString]);
                     } else if (loopDate >= cutoffDate) {
-                        // Only auto-fill as Present if the date is the 15th or later
+                        // Mark as Leave if they have not checked in on a working day
                         allRecords.push({
                             dateStr: dateString,
-                            status: 'Present',
+                            status: 'Leave', // <--- Changed from 'Present' to 'Leave'
                             isAutoFill: true 
                         });
                     }
