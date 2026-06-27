@@ -68,14 +68,25 @@ function formatISTLongDate(dateObj) {
     });
 }
 
-function getLocalDate() {
-    return formatISTDate(getTrueDate());
-}
+// =====================================================
+// COMPANY HOLIDAYS (Add your dates here in YYYY-MM-DD format)
+// =====================================================
+const COMPANY_HOLIDAYS = [
+    "2026-06-30", // Example: 30th of June
+    "2026-08-15", // Example: Independence Day
+    "2026-10-02"  // Example: Gandhi Jayanti
+];
 
 function isWorkingDay(date) {
+    const dateStr = formatISTDate(date);
+    
+    // 1. Check if the date is in our Holiday array
+    if (COMPANY_HOLIDAYS.includes(dateStr)) return false; 
+
+    // 2. Standard Weekend Logic
     const dayOfWeek = date.getDay(); 
-    if (dayOfWeek === 0) return false;
-    if (dayOfWeek === 6) {
+    if (dayOfWeek === 0) return false; // Sunday
+    if (dayOfWeek === 6) { // Even Saturdays
         const dateNum = date.getDate();
         const nthSaturday = Math.ceil(dateNum / 7);
         return nthSaturday % 2 !== 0;
@@ -879,6 +890,25 @@ const TaskTracker = {
         if (!msgElement) return;
 
         const todayStr = getLocalDate();
+        const todayObj = new Date(todayStr + 'T00:00:00');
+        
+        // Grab the buttons
+        const checkInBtns = document.querySelectorAll(`button[onclick*="'CheckIn'"]`);
+        const checkOutBtns = document.querySelectorAll(`button[onclick*="'CheckOut'"]`);
+
+        // IF TODAY IS A HOLIDAY OR WEEKEND: Disable buttons & show message
+        if (!isWorkingDay(todayObj)) {
+            msgElement.innerHTML = `Status: <strong>Holiday / Non-Working Day</strong> 🎉`;
+            msgElement.style.color = '#eab308';
+            checkInBtns.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.3"; btn.style.cursor = "not-allowed"; });
+            checkOutBtns.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.3"; btn.style.cursor = "not-allowed"; });
+            return; // Stop checking the database for today
+        } else {
+            // Re-enable buttons if it is a normal working day
+            checkInBtns.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; });
+            checkOutBtns.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; });
+        }
+
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
             let todayRecord = null;
