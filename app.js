@@ -43,12 +43,12 @@ function getTrueDate() {
 // =====================================================
 
 function formatISTDate(dateObj) {
-    return dateObj.toLocaleDateString("en-CA", {
-        timeZone: "Asia/Kolkata"
-    });
+    if (!dateObj || isNaN(dateObj.getTime())) return "Unknown Date";
+    return dateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 }
 
 function formatISTTime(dateObj) {
+    if (!dateObj || isNaN(dateObj.getTime())) return "-";
     return dateObj.toLocaleTimeString("en-US", {
         timeZone: "Asia/Kolkata",
         hour: "2-digit",
@@ -78,6 +78,7 @@ const COMPANY_HOLIDAYS = [
 ];
 
 function isWorkingDay(date) {
+    if (!date || isNaN(date.getTime())) return false; // Fail-safe
     const dateStr = formatISTDate(date);
     
     // 1. Check if the date is in our Holiday array
@@ -563,10 +564,13 @@ const TaskTracker = {
                 }
             });
 
+            // Bulletproof sorting (prevents NaN crashes)
             myTasks.sort((a, b) => {
-                const dateA = new Date(a.startDate || "9999-12-31"); 
-                const dateB = new Date(b.startDate || "9999-12-31");
-                return dateB - dateA; 
+                let dA = new Date(a.startDate || 0).getTime();
+                let dB = new Date(b.startDate || 0).getTime();
+                if (isNaN(dA)) dA = 0;
+                if (isNaN(dB)) dB = 0;
+                return dB - dA; 
             });
 
             myTasks.forEach((task)=>{
@@ -641,9 +645,9 @@ const TaskTracker = {
         const taskTable = document.getElementById("reportTaskTable");
         const attendanceTable = document.getElementById("reportAttendanceTable");
         const leavesTable = document.getElementById("reportLeavesTable"); 
-        if (taskTable) taskTable.innerHTML = "";
-        if (attendanceTable) attendanceTable.innerHTML = "";
-        if (leavesTable) leavesTable.innerHTML = ""; 
+        if (taskTable) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color:black;'>Loading...</td></tr>";
+        if (attendanceTable) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color:black;'>Loading...</td></tr>";
+        if (leavesTable) leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color:black;'>Loading...</td></tr>"; 
 
         try {
             // 1. FETCH EXPLICIT LEAVES FROM DATABASE
@@ -659,11 +663,15 @@ const TaskTracker = {
                     if (l.status === 'Approved') {
                         let currentDate = new Date(l.fromDate + 'T00:00:00');
                         const endDate = new Date(l.toDate + 'T00:00:00');
-                        while(currentDate <= endDate) {
-                            if (isWorkingDay(currentDate)) {
-                                totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                        
+                        // Fail-safe loop for bad dates
+                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
+                            while(currentDate <= endDate) {
+                                if (isWorkingDay(currentDate)) {
+                                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
+                                }
+                                currentDate.setDate(currentDate.getDate() + 1);
                             }
-                            currentDate.setDate(currentDate.getDate() + 1);
                         }
                     }
                 }
@@ -681,7 +689,7 @@ const TaskTracker = {
                     const dStr = att.dateStr || att.date;
                     if (dStr) {
                         const d = new Date(dStr + 'T00:00:00');
-                        if (d < earliestDate) earliestDate = d;
+                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
                     }
                 }
             });
@@ -699,7 +707,9 @@ const TaskTracker = {
             const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
             cutoffDate.setHours(0, 0, 0, 0);
 
-            const startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            if (isNaN(startMs)) startMs = cutoffDate.getTime(); // Fail-safe
+            
             let loopDate = new Date(startMs);
             loopDate.setHours(0, 0, 0, 0);
 
@@ -743,8 +753,17 @@ const TaskTracker = {
                 loopDate.setDate(loopDate.getDate() + 1);
             }
 
-            // 3. RENDER LEAVES TABLE (Now includes Auto-Marked leaves)
-            employeeLeavesForTable.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
+            // 3. RENDER LEAVES TABLE 
+            // Bulletproof Sort
+            employeeLeavesForTable.sort((a, b) => {
+                let dA = new Date(a.fromDate || 0).getTime();
+                let dB = new Date(b.fromDate || 0).getTime();
+                if(isNaN(dA)) dA = 0;
+                if(isNaN(dB)) dB = 0;
+                return dB - dA;
+            });
+            
+            if (leavesTable) leavesTable.innerHTML = "";
             employeeLeavesForTable.forEach(l => {
                 let statusColor = "black";
                 if(l.status === 'Approved') statusColor = "#10b981"; 
@@ -755,12 +774,12 @@ const TaskTracker = {
                 if (leavesTable) {
                     leavesTable.innerHTML += `
                         <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.dayType}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.fromDate}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.toDate}</td>
-                            <td style="color: ${statusColor}; border-bottom: 1px solid #e2e8f0;"><strong>${l.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.reason}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.dayType || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.fromDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.toDate || '-'}</td>
+                            <td style="color: ${statusColor}; border-bottom: 1px solid #e2e8f0;"><strong>${l.status || '-'}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.reason || '-'}</td>
                         </tr>
                     `;
                 }
@@ -776,14 +795,16 @@ const TaskTracker = {
             }
 
             // 4. RENDER ATTENDANCE TABLE
+            // Bulletproof Sort
             allRecords.sort((a, b) => {
-                const dateAStr = a.dateStr || a.date;
-                const dateBStr = b.dateStr || b.date;
-                const dateA = new Date(dateAStr + 'T00:00:00');
-                const dateB = new Date(dateBStr + 'T00:00:00');
-                return dateB - dateA;
+                let dA = new Date((a.dateStr || a.date) + 'T00:00:00').getTime();
+                let dB = new Date((b.dateStr || b.date) + 'T00:00:00').getTime();
+                if(isNaN(dA)) dA = 0;
+                if(isNaN(dB)) dB = 0;
+                return dB - dA;
             });
 
+            if(attendanceTable) attendanceTable.innerHTML = "";
             allRecords.forEach(att => {
                 const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
                 const displayDate = att.dateStr || att.date || 'Unknown Date';
@@ -841,12 +862,16 @@ const TaskTracker = {
                 }
             });
 
+            // Bulletproof Sort
             employeeTasks.sort((a, b) => {
-                const dateA = new Date(a.startDate || 0);
-                const dateB = new Date(b.startDate || 0);
-                return dateB - dateA; 
+                let dA = new Date(a.startDate || 0).getTime();
+                let dB = new Date(b.startDate || 0).getTime();
+                if(isNaN(dA)) dA = 0;
+                if(isNaN(dB)) dB = 0;
+                return dB - dA; 
             });
 
+            if(taskTable) taskTable.innerHTML = "";
             employeeTasks.forEach(task => {
                 if(taskTable) {
                     taskTable.innerHTML += `
@@ -866,7 +891,10 @@ const TaskTracker = {
                 taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
             }
 
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error("View Employee Error:", e);
+            alert("Error loading employee data. Check console."); 
+        }
     },
 
     downloadPDF() {
@@ -1237,10 +1265,7 @@ const TaskTracker = {
     async renderEmployeeLeaves() {
         try {
             const table = document.getElementById("employeeLeavesTable");
-            if (!table) {
-                console.warn("employeeLeavesTable missing in DOM");
-                return;
-            }
+            if (!table) return;
             table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
             const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
@@ -1268,7 +1293,7 @@ const TaskTracker = {
                     const dStr = att.dateStr || att.date;
                     if (dStr) {
                         const d = new Date(dStr + 'T00:00:00');
-                        if (d < earliestDate) earliestDate = d;
+                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
                     }
                 }
             });
@@ -1284,7 +1309,9 @@ const TaskTracker = {
             const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
             cutoffDate.setHours(0, 0, 0, 0);
 
-            const startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            if(isNaN(startMs)) startMs = cutoffDate.getTime();
+
             let loopDate = new Date(startMs);
             loopDate.setHours(0, 0, 0, 0);
 
@@ -1313,8 +1340,14 @@ const TaskTracker = {
                 loopDate.setDate(loopDate.getDate() + 1);
             }
 
-            // 5. Sort and Render
-            leaves.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
+            // 5. Sort and Render (Bulletproof Sort)
+            leaves.sort((a, b) => {
+                let dA = new Date(a.fromDate || 0).getTime();
+                let dB = new Date(b.fromDate || 0).getTime();
+                if(isNaN(dA)) dA = 0;
+                if(isNaN(dB)) dB = 0;
+                return dB - dA;
+            });
 
             table.innerHTML = "";
             leaves.forEach(data => {
@@ -1322,16 +1355,16 @@ const TaskTracker = {
                 if(data.status === 'Approved') statusColor = "#10b981"; 
                 if(data.status === 'Rejected') statusColor = "#ef4444"; 
                 if(data.status === 'Pending') statusColor = "#eab308";  
-                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; // Color for missing days
+                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; 
 
                 table.innerHTML += `
                     <tr>
-                        <td>${data.leaveType}</td>
-                        <td>${data.dayType}</td>
-                        <td>${data.fromDate}</td>
-                        <td>${data.toDate}</td>
-                        <td>${data.reason}</td>
-                        <td><strong style="color: ${statusColor};">${data.status}</strong></td>
+                        <td>${data.leaveType || '-'}</td>
+                        <td>${data.dayType || '-'}</td>
+                        <td>${data.fromDate || '-'}</td>
+                        <td>${data.toDate || '-'}</td>
+                        <td>${data.reason || '-'}</td>
+                        <td><strong style="color: ${statusColor};">${data.status || '-'}</strong></td>
                     </tr>
                 `;
             });
@@ -1505,32 +1538,24 @@ function triggerFirecrackers() {
     const container = document.getElementById("firecracker-container");
     if (!container) return;
 
-    // Start in the center of the screen until the user moves the mouse
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
 
-    // Track the cursor's exact position
     document.addEventListener("mousemove", (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
 
-    // Spawn a firecracker every 400 milliseconds
     setInterval(() => {
         const boom = document.createElement("div");
         boom.className = "firecracker";
-        
-        // Add a slight random scatter (+/- 40px) so they pop AROUND the cursor naturally
         const offsetX = (Math.random() - 0.5) * 80; 
         const offsetY = (Math.random() - 0.5) * 80;
-
         boom.style.left = (mouseX + offsetX) + "px";
         boom.style.top = (mouseY + offsetY) + "px";
         container.appendChild(boom);
-        
-        // Remove from DOM after animation finishes
         setTimeout(() => boom.remove(), 1000);
-    }, 400); // 400ms creates a nice trail as you move!
+    }, 400); 
 }
 
 window.onload = async () => {
@@ -1540,7 +1565,6 @@ window.onload = async () => {
     loadHolidays();
     populateEmployeeDropdown();
 
-    // ADDED: Only trigger firecrackers on the main landing page
     if (currentPage === "index.html" || currentPage === "") {
         triggerFirecrackers();
     }
