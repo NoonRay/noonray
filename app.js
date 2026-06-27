@@ -1203,6 +1203,7 @@ const TaskTracker = {
         if (!user) return;
 
         try {
+            // 1. Fetch explicitly applied leaves
             const snapshot = await getDocs(collection(db, "leaves"));
             let leaves = [];
             snapshot.forEach(docSnap => {
@@ -1212,6 +1213,64 @@ const TaskTracker = {
                 }
             });
 
+            // 2. Fetch attendance to find missing check-ins
+            const attSnap = await getDocs(collection(db, "attendance"));
+            let existingRecords = [];
+            let earliestDate = new Date(); 
+            
+            attSnap.forEach(docSnap => {
+                const att = docSnap.data();
+                if(att.employee === user.name) {
+                    existingRecords.push(att);
+                    const dStr = att.dateStr || att.date;
+                    if (dStr) {
+                        const d = new Date(dStr + 'T00:00:00');
+                        if (d < earliestDate) earliestDate = d;
+                    }
+                }
+            });
+            
+            const attMap = {};
+            existingRecords.forEach(att => {
+                const displayDate = att.dateStr || att.date;
+                if (displayDate) attMap[displayDate] = att;
+            });
+
+            // 3. Set cutoff to the 15th of the current month
+            const currentNow = getTrueDate();
+            const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
+            cutoffDate.setHours(0, 0, 0, 0);
+
+            const startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            let loopDate = new Date(startMs);
+            loopDate.setHours(0, 0, 0, 0);
+
+            const todayStr = getLocalDate();
+            const endDate = new Date(todayStr + 'T00:00:00');
+
+            // 4. Loop through days and Auto-Fill missing working days
+            while (loopDate <= endDate) {
+                if (isWorkingDay(loopDate)) {
+                    const dateString = formatISTDate(loopDate);
+                    
+                    if (loopDate >= cutoffDate) {
+                        if (!attMap[dateString]) {
+                            // Missing check-in on a working day
+                            leaves.push({
+                                leaveType: 'Unmarked Absent',
+                                dayType: 'Full',
+                                fromDate: dateString,
+                                toDate: dateString,
+                                status: 'Auto-Marked',
+                                reason: 'No Check-In on Working Day'
+                            });
+                        }
+                    }
+                }
+                loopDate.setDate(loopDate.getDate() + 1);
+            }
+
+            // 5. Sort and Render
             leaves.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
 
             table.innerHTML = "";
@@ -1220,6 +1279,7 @@ const TaskTracker = {
                 if(data.status === 'Approved') statusColor = "#10b981"; 
                 if(data.status === 'Rejected') statusColor = "#ef4444"; 
                 if(data.status === 'Pending') statusColor = "#eab308";  
+                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; // Color for missing days
 
                 table.innerHTML += `
                     <tr>
