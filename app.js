@@ -68,6 +68,19 @@ function formatISTLongDate(dateObj) {
     });
 }
 
+function getLocalDate() {
+    return formatISTDate(getTrueDate());
+}
+
+// SAFE FIREBASE TIMESTAMP PARSER (Prevents page crashes from bad data)
+function parseFBDate(ts) {
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (ts.seconds) return new Date(ts.seconds * 1000);
+    const parsed = new Date(ts);
+    return isNaN(parsed.getTime()) ? null : parsed;
+}
+
 // =====================================================
 // COMPANY HOLIDAYS (Add your dates here in YYYY-MM-DD format)
 // =====================================================
@@ -78,7 +91,7 @@ const COMPANY_HOLIDAYS = [
 ];
 
 function isWorkingDay(date) {
-    if (!date || isNaN(date.getTime())) return false; // Fail-safe
+    if (!date || isNaN(date.getTime())) return false;
     const dateStr = formatISTDate(date);
     
     // 1. Check if the date is in our Holiday array
@@ -564,7 +577,7 @@ const TaskTracker = {
                 }
             });
 
-            // Bulletproof sorting (prevents NaN crashes)
+            // Bulletproof sorting
             myTasks.sort((a, b) => {
                 let dA = new Date(a.startDate || 0).getTime();
                 let dB = new Date(b.startDate || 0).getTime();
@@ -664,7 +677,6 @@ const TaskTracker = {
                         let currentDate = new Date(l.fromDate + 'T00:00:00');
                         const endDate = new Date(l.toDate + 'T00:00:00');
                         
-                        // Fail-safe loop for bad dates
                         if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
                             while(currentDate <= endDate) {
                                 if (isWorkingDay(currentDate)) {
@@ -708,7 +720,7 @@ const TaskTracker = {
             cutoffDate.setHours(0, 0, 0, 0);
 
             let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
-            if (isNaN(startMs)) startMs = cutoffDate.getTime(); // Fail-safe
+            if (isNaN(startMs)) startMs = cutoffDate.getTime(); 
             
             let loopDate = new Date(startMs);
             loopDate.setHours(0, 0, 0, 0);
@@ -754,7 +766,6 @@ const TaskTracker = {
             }
 
             // 3. RENDER LEAVES TABLE 
-            // Bulletproof Sort
             employeeLeavesForTable.sort((a, b) => {
                 let dA = new Date(a.fromDate || 0).getTime();
                 let dB = new Date(b.fromDate || 0).getTime();
@@ -795,7 +806,6 @@ const TaskTracker = {
             }
 
             // 4. RENDER ATTENDANCE TABLE
-            // Bulletproof Sort
             allRecords.sort((a, b) => {
                 let dA = new Date((a.dateStr || a.date) + 'T00:00:00').getTime();
                 let dB = new Date((b.dateStr || b.date) + 'T00:00:00').getTime();
@@ -815,17 +825,21 @@ const TaskTracker = {
 
                 if (!att.isAutoFill) {
                     if (att.checkInServerTime) {
-                        const ciDate = att.checkInServerTime.toDate();
-                        checkInText = formatISTTime(ciDate);
-                        
-                        if (att.checkOutServerTime) {
-                            const coDate = att.checkOutServerTime.toDate();
-                            checkOutText = formatISTTime(coDate);
+                        const ciDate = parseFBDate(att.checkInServerTime);
+                        if (ciDate) {
+                            checkInText = formatISTTime(ciDate);
                             
-                            const diffMs = coDate.getTime() - att.checkInServerTime.toDate().getTime();
-                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                            totalTimeText = `${hours}h ${minutes}m`;
+                            if (att.checkOutServerTime) {
+                                const coDate = parseFBDate(att.checkOutServerTime);
+                                if (coDate) {
+                                    checkOutText = formatISTTime(coDate);
+                                    
+                                    const diffMs = coDate.getTime() - ciDate.getTime();
+                                    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                                    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                    totalTimeText = `${hours}h ${minutes}m`;
+                                }
+                            }
                         }
                     } else {
                         checkInText = att.checkInTime || att.checkIn || '-'; 
@@ -862,7 +876,6 @@ const TaskTracker = {
                 }
             });
 
-            // Bulletproof Sort
             employeeTasks.sort((a, b) => {
                 let dA = new Date(a.startDate || 0).getTime();
                 let dB = new Date(b.startDate || 0).getTime();
@@ -933,7 +946,7 @@ const TaskTracker = {
             msgElement.style.color = '#eab308';
             checkInBtns.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.3"; btn.style.cursor = "not-allowed"; });
             checkOutBtns.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.3"; btn.style.cursor = "not-allowed"; });
-            return; // Stop checking the database for today
+            return; 
         } else {
             // Re-enable buttons if it is a normal working day
             checkInBtns.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; });
@@ -960,19 +973,23 @@ const TaskTracker = {
             let statusHtml = `<span style="color: ${todayRecord.status === 'Present' ? '#10b981' : '#eab308'}; font-weight: bold;">Status: ${todayRecord.status}</span><br><br>`;
             
             if (todayRecord.checkInServerTime) {
-                const ciDate = todayRecord.checkInServerTime.toDate();
-                statusHtml += `<strong>Check In:</strong> <span style="color: white;">${formatISTTime(ciDate)}</span><br>`;
-                
-                if (todayRecord.checkOutServerTime) {
-                    const coDate = todayRecord.checkOutServerTime.toDate();
-                    statusHtml += `<strong>Check Out:</strong> <span style="color: white;">${formatISTTime(coDate)}</span><br>`;
+                const ciDate = parseFBDate(todayRecord.checkInServerTime);
+                if (ciDate) {
+                    statusHtml += `<strong>Check In:</strong> <span style="color: white;">${formatISTTime(ciDate)}</span><br>`;
                     
-                    const diffMs = coDate.getTime() - ciDate.getTime();
-                    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                    statusHtml += `<br><strong style="color: #60a5fa;">Total Hours: ${hours}h ${minutes}m</strong>`;
-                } else {
-                    statusHtml += `<strong>Check Out:</strong> <span style="color: #94a3b8;">Not checked out yet</span>`;
+                    if (todayRecord.checkOutServerTime) {
+                        const coDate = parseFBDate(todayRecord.checkOutServerTime);
+                        if (coDate) {
+                            statusHtml += `<strong>Check Out:</strong> <span style="color: white;">${formatISTTime(coDate)}</span><br>`;
+                            
+                            const diffMs = coDate.getTime() - ciDate.getTime();
+                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                            statusHtml += `<br><strong style="color: #60a5fa;">Total Hours: ${hours}h ${minutes}m</strong>`;
+                        }
+                    } else {
+                        statusHtml += `<strong>Check Out:</strong> <span style="color: #94a3b8;">Not checked out yet</span>`;
+                    }
                 }
             } else {
                 statusHtml += `<strong>Check In:</strong> <span style="color: white;">${todayRecord.checkInTime || todayRecord.checkIn || '-'}</span><br>`;
@@ -1094,17 +1111,21 @@ const TaskTracker = {
                     let totalTimeText = '-';
 
                     if (record.checkInServerTime) {
-                        const ciDate = record.checkInServerTime.toDate();
-                        checkInText = formatISTTime(ciDate);
-                        
-                        if (record.checkOutServerTime) {
-                            const coDate = record.checkOutServerTime.toDate();
-                            checkOutText = formatISTTime(coDate);
+                        const ciDate = parseFBDate(record.checkInServerTime);
+                        if (ciDate) {
+                            checkInText = formatISTTime(ciDate);
                             
-                            const diffMs = coDate.getTime() - ciDate.getTime();
-                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                            totalTimeText = `${hours}h ${minutes}m`;
+                            if (record.checkOutServerTime) {
+                                const coDate = parseFBDate(record.checkOutServerTime);
+                                if (coDate) {
+                                    checkOutText = formatISTTime(coDate);
+                                    
+                                    const diffMs = coDate.getTime() - ciDate.getTime();
+                                    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                                    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                    totalTimeText = `${hours}h ${minutes}m`;
+                                }
+                            }
                         }
                     } else {
                         checkInText = record.checkInTime || record.checkIn || '-'; 
@@ -1265,7 +1286,10 @@ const TaskTracker = {
     async renderEmployeeLeaves() {
         try {
             const table = document.getElementById("employeeLeavesTable");
-            if (!table) return;
+            if (!table) {
+                console.warn("employeeLeavesTable missing in DOM");
+                return;
+            }
             table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
             const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
@@ -1355,7 +1379,7 @@ const TaskTracker = {
                 if(data.status === 'Approved') statusColor = "#10b981"; 
                 if(data.status === 'Rejected') statusColor = "#ef4444"; 
                 if(data.status === 'Pending') statusColor = "#eab308";  
-                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; 
+                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; // Color for missing days
 
                 table.innerHTML += `
                     <tr>
