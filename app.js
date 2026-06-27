@@ -626,20 +626,21 @@ const TaskTracker = {
         
         const taskTable = document.getElementById("reportTaskTable");
         const attendanceTable = document.getElementById("reportAttendanceTable");
-        const leavesTable = document.getElementById("reportLeavesTable"); // ADDED
+        const leavesTable = document.getElementById("reportLeavesTable"); 
         if (taskTable) taskTable.innerHTML = "";
         if (attendanceTable) attendanceTable.innerHTML = "";
-        if (leavesTable) leavesTable.innerHTML = ""; // ADDED
+        if (leavesTable) leavesTable.innerHTML = ""; 
 
         try {
+            // 1. FETCH EXPLICIT LEAVES FROM DATABASE
             const leaveSnap = await getDocs(collection(db, "leaves"));
             let totalLeaveDays = 0;
-            let employeeLeavesForTable = []; // ADDED
+            let employeeLeavesForTable = []; 
             
             leaveSnap.forEach(docSnap => {
                 const l = docSnap.data();
                 if(l.employee === employeeName) {
-                    employeeLeavesForTable.push(l); // ADDED: Save for the table
+                    employeeLeavesForTable.push(l); 
                     
                     if (l.status === 'Approved') {
                         let currentDate = new Date(l.fromDate + 'T00:00:00');
@@ -654,71 +655,7 @@ const TaskTracker = {
                 }
             });
 
-            // ADDED: Generate the HTML rows for the Leaves table
-            employeeLeavesForTable.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
-            employeeLeavesForTable.forEach(l => {
-                let statusColor = "black";
-                if(l.status === 'Approved') statusColor = "#10b981"; 
-                if(l.status === 'Rejected') statusColor = "#ef4444"; 
-                if(l.status === 'Pending') statusColor = "#eab308";
-                
-                if (leavesTable) {
-                    leavesTable.innerHTML += `
-                        <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.dayType}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.fromDate}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.toDate}</td>
-                            <td style="color: ${statusColor}; border-bottom: 1px solid #e2e8f0;"><strong>${l.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.reason}</td>
-                        </tr>
-                    `;
-                }
-            });
-            if(employeeLeavesForTable.length === 0 && leavesTable) {
-                leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No leaves requested.</td></tr>";
-            }
-
-            const reportDateElem = document.getElementById("reportDate");
-            if (reportDateElem) {
-                reportDateElem.innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
-            }
-
-            const taskSnap = await getDocs(collection(db, "tasks"));
-            let employeeTasks = [];
-            
-            taskSnap.forEach(docSnap => {
-                const task = docSnap.data();
-                if(task.employee === employeeName) {
-                    employeeTasks.push(task);
-                }
-            });
-
-            employeeTasks.sort((a, b) => {
-                const dateA = new Date(a.startDate || 0);
-                const dateB = new Date(b.startDate || 0);
-                return dateB - dateA; 
-            });
-
-            employeeTasks.forEach(task => {
-                if(taskTable) {
-                    taskTable.innerHTML += `
-                        <tr>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
-                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
-                        </tr>
-                    `;
-                }
-            });
-            
-            if(employeeTasks.length === 0 && taskTable) {
-                taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
-            }
-
+            // 2. FETCH ATTENDANCE & AUTO-FILL MISSING DAYS AS LEAVES
             const attSnap = await getDocs(collection(db, "attendance"));
             let existingRecords = [];
             let earliestDate = new Date(); 
@@ -741,34 +678,90 @@ const TaskTracker = {
                 if (displayDate) attMap[displayDate] = att;
             });
 
-           let allRecords = [];
-            let loopDate = new Date(earliestDate);
-            const todayStr = getLocalDate();
-            const endDate = new Date(todayStr + 'T00:00:00');
-
-            // Set the cutoff date to the 15th of the current month
+            let allRecords = [];
+            
+            // Set the cutoff to the 15th of the current month
             const currentNow = getTrueDate();
             const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
+            cutoffDate.setHours(0, 0, 0, 0);
+
+            const startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            let loopDate = new Date(startMs);
+            loopDate.setHours(0, 0, 0, 0);
+
+            const todayStr = getLocalDate();
+            const endDate = new Date(todayStr + 'T00:00:00');
 
             while (loopDate <= endDate) {
                 if (isWorkingDay(loopDate)) {
                     const dateString = formatISTDate(loopDate);
                     
-                    if (attMap[dateString]) {
-                        // Always show actual database records (Approved Leaves or manual Check-Ins)
-                        allRecords.push(attMap[dateString]);
-                    } else if (loopDate >= cutoffDate) {
-                        // Mark as Leave if they have not checked in on a working day
-                        allRecords.push({
-                            dateStr: dateString,
-                            status: 'Leave', // <--- Changed from 'Present' to 'Leave'
-                            isAutoFill: true 
-                        });
+                    if (loopDate >= cutoffDate) {
+                        if (attMap[dateString]) {
+                            allRecords.push(attMap[dateString]);
+                        } else {
+                            // ATTENDANCE TABLE: Auto-fill missing day as Leave
+                            allRecords.push({
+                                dateStr: dateString,
+                                status: 'Leave', 
+                                isAutoFill: true 
+                            });
+                            
+                            // LEAVES TABLE: Push a dynamic record to show why they were marked Leave
+                            employeeLeavesForTable.push({
+                                leaveType: 'Unmarked Absent',
+                                dayType: 'Full',
+                                fromDate: dateString,
+                                toDate: dateString,
+                                status: 'Auto-Marked',
+                                reason: 'No Check-In on Working Day'
+                            });
+                            // Increment total leave days
+                            totalLeaveDays += 1;
+                        }
+                    } else {
+                        // BEFORE 15th: ONLY show explicitly applied Leaves
+                        if (attMap[dateString] && attMap[dateString].status === 'Leave') {
+                            allRecords.push(attMap[dateString]);
+                        }
                     }
                 }
                 loopDate.setDate(loopDate.getDate() + 1);
             }
 
+            // 3. RENDER LEAVES TABLE (Now includes Auto-Marked leaves)
+            employeeLeavesForTable.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate));
+            employeeLeavesForTable.forEach(l => {
+                let statusColor = "black";
+                if(l.status === 'Approved') statusColor = "#10b981"; 
+                if(l.status === 'Rejected') statusColor = "#ef4444"; 
+                if(l.status === 'Pending') statusColor = "#eab308";
+                if(l.status === 'Auto-Marked') statusColor = "#ef4444"; 
+                
+                if (leavesTable) {
+                    leavesTable.innerHTML += `
+                        <tr>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.dayType}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.fromDate}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.toDate}</td>
+                            <td style="color: ${statusColor}; border-bottom: 1px solid #e2e8f0;"><strong>${l.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.reason}</td>
+                        </tr>
+                    `;
+                }
+            });
+            if(employeeLeavesForTable.length === 0 && leavesTable) {
+                leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No leaves requested.</td></tr>";
+            }
+
+            // Update Total Leaves Header
+            const reportDateElem = document.getElementById("reportDate");
+            if (reportDateElem) {
+                reportDateElem.innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
+            }
+
+            // 4. RENDER ATTENDANCE TABLE
             allRecords.sort((a, b) => {
                 const dateAStr = a.dateStr || a.date;
                 const dateBStr = b.dateStr || b.date;
@@ -822,6 +815,43 @@ const TaskTracker = {
             if(allRecords.length === 0 && attendanceTable) {
                 attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
             }
+
+            // 5. RENDER TASKS TABLE
+            const taskSnap = await getDocs(collection(db, "tasks"));
+            let employeeTasks = [];
+            
+            taskSnap.forEach(docSnap => {
+                const task = docSnap.data();
+                if(task.employee === employeeName) {
+                    employeeTasks.push(task);
+                }
+            });
+
+            employeeTasks.sort((a, b) => {
+                const dateA = new Date(a.startDate || 0);
+                const dateB = new Date(b.startDate || 0);
+                return dateB - dateA; 
+            });
+
+            employeeTasks.forEach(task => {
+                if(taskTable) {
+                    taskTable.innerHTML += `
+                        <tr>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.project || 'None'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.title}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.startDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.endDate || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;"><strong>${task.status}</strong></td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">${task.remarks || '-'}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            if(employeeTasks.length === 0 && taskTable) {
+                taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No tasks assigned.</td></tr>";
+            }
+
         } catch(e) { console.error(e); }
     },
 
