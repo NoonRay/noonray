@@ -177,7 +177,7 @@ const users = [
     { email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
     { email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
     { email: "arun", password: "NRIN019", name: "Arun M", role: "intern" }
-  ];
+];
 
 function populateEmployeeDropdown() {
     const select = document.getElementById("employeeSelect");
@@ -598,7 +598,10 @@ const TaskTracker = {
             if(myTasks.length === 0) {
                 table.innerHTML = "<tr><td colspan='8' style='text-align:center;'>No tasks assigned.</td></tr>";
             }
-        } catch(error){ console.error(error); }
+        } catch(error){ 
+            console.error(error); 
+            table.innerHTML = "<tr><td colspan='8' style='text-align:center; color:#ef4444;'>Error loading tasks.</td></tr>";
+        }
     },
 
     async updateTask(id){
@@ -962,6 +965,13 @@ const TaskTracker = {
         if (!user) return;
 
         const todayStr = getLocalDate(); 
+        const todayObj = new Date(todayStr + 'T00:00:00');
+
+        // EXTRA SECURITY: Block attendance if it's a holiday
+        if (!isWorkingDay(todayObj)) {
+            alert("Today is a Holiday or Weekend! Attendance is disabled.");
+            return;
+        }
         
         try {
             const snapshot = await getDocs(collection(db, "attendance"));
@@ -1225,14 +1235,17 @@ const TaskTracker = {
     },
 
     async renderEmployeeLeaves() {
-        const table = document.getElementById("employeeLeavesTable");
-        if (!table) return;
-        table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
-
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
-        if (!user) return;
-
         try {
+            const table = document.getElementById("employeeLeavesTable");
+            if (!table) {
+                console.warn("employeeLeavesTable missing in DOM");
+                return;
+            }
+            table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
+
+            const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+            if (!user) return;
+
             // 1. Fetch explicitly applied leaves
             const snapshot = await getDocs(collection(db, "leaves"));
             let leaves = [];
@@ -1327,7 +1340,9 @@ const TaskTracker = {
                 table.innerHTML = "<tr><td colspan='6' style='text-align:center; color: #94a3b8;'>No leave requests found.</td></tr>";
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error in renderEmployeeLeaves:", error);
+            const table = document.getElementById("employeeLeavesTable");
+            if(table) table.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#ef4444;'>Error loading leaves.</td></tr>";
         }
     },
 
