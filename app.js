@@ -85,7 +85,6 @@ function parseFBDate(ts) {
 // COMPANY HOLIDAYS (Add your dates here in YYYY-MM-DD format)
 // =====================================================
 const COMPANY_HOLIDAYS = [
-    "2026-08-15", // Example: 30th of June
     "2026-08-15", // Example: Independence Day
     "2026-10-02"  // Example: Gandhi Jayanti
 ];
