@@ -714,35 +714,37 @@ const TaskTracker = {
             let allRecords = [];
             
             // Set the cutoff to the 15th of the current month
-            const currentNow = getTrueDate();
-            const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth()-1, 15);
+           const currentNow = getTrueDate();
+            const cutoffDate = new Date(
+                currentNow.getFullYear(),
+                currentNow.getMonth() - 1,
+                15
+            );
             cutoffDate.setHours(0, 0, 0, 0);
-
-            let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
-            if (isNaN(startMs)) startMs = cutoffDate.getTime(); 
+            
+            // Start exactly from the cutoff date
+            let startMs = cutoffDate.getTime();
             
             let loopDate = new Date(startMs);
             loopDate.setHours(0, 0, 0, 0);
-
+            
             const todayStr = getLocalDate();
             const endDate = new Date(todayStr + 'T00:00:00');
-
-            while (loopDate <= endDate) {
+            
+            while (loopDate.getTime() <= endDate.getTime()) {
                 if (isWorkingDay(loopDate)) {
                     const dateString = formatISTDate(loopDate);
-                    
-                    if (loopDate >= cutoffDate) {
+            
+                    if (loopDate.getTime() >= cutoffDate.getTime()) {
                         if (attMap[dateString]) {
                             allRecords.push(attMap[dateString]);
                         } else {
-                            // ATTENDANCE TABLE: Auto-fill missing day as Leave
                             allRecords.push({
                                 dateStr: dateString,
-                                status: 'Leave', 
-                                isAutoFill: true 
+                                status: 'Leave',
+                                isAutoFill: true
                             });
-                            
-                            // LEAVES TABLE: Push a dynamic record to show why they were marked Leave
+            
                             employeeLeavesForTable.push({
                                 leaveType: 'Unmarked Absent',
                                 dayType: 'Full',
@@ -751,18 +753,14 @@ const TaskTracker = {
                                 status: 'Auto-Marked',
                                 reason: 'No Check-In on Working Day'
                             });
-                            // Increment total leave days
+            
                             totalLeaveDays += 1;
                         }
-                    } else {
-                        // BEFORE 15th: ONLY show explicitly applied Leaves
-                        if (attMap[dateString] && attMap[dateString].status === 'Leave') {
-                            allRecords.push(attMap[dateString]);
-                        }
-                    }
-                }
-                loopDate.setDate(loopDate.getDate() + 1);
-            }
+        }
+    }
+
+    loopDate.setDate(loopDate.getDate() + 1);
+}
 
             // 3. RENDER LEAVES TABLE 
             employeeLeavesForTable.sort((a, b) => {
