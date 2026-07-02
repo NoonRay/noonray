@@ -715,7 +715,7 @@ const TaskTracker = {
             
             // Set the cutoff to the 15th of the current month
             const currentNow = getTrueDate();
-            const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth()-1, 15);
+            const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
             cutoffDate.setHours(0, 0, 0, 0);
 
             let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
