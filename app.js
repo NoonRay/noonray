@@ -177,16 +177,16 @@ const users = [
     { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "intern" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "intern" },
-    { email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
-    { email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
-    { email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
-    { email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
+    //{ email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
+    //{ email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
+    //{ email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
+    //{ email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "intern" },
     { email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
     { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern" },
     { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" },
-    { email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
-    { email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
+    //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
+    //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
     { email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
     { email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
     { email: "arun", password: "NRIN019", name: "Arun M", role: "intern" }
@@ -714,7 +714,7 @@ const TaskTracker = {
             let allRecords = [];
             
             // Set the cutoff to the 15th of the current month
-           const currentNow = getTrueDate();
+            const currentNow = getTrueDate();
             const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
             cutoffDate.setHours(0, 0, 0, 0);
 
@@ -763,6 +763,7 @@ const TaskTracker = {
                 }
                 loopDate.setDate(loopDate.getDate() + 1);
             }
+
             // 3. RENDER LEAVES TABLE 
             employeeLeavesForTable.sort((a, b) => {
                 let dA = new Date(a.fromDate || 0).getTime();
