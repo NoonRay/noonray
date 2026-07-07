@@ -383,7 +383,7 @@ select {
     position: fixed;
     bottom: 0;
     width: 100%;
-    background: #22c55e;
+    background: transparent;
     color: white;
     padding: 10px;
     overflow: hidden;
