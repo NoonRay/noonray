@@ -416,3 +416,17 @@ select {
     0% { transform: scale(1); opacity: 1; }
     100% { transform: scale(5); opacity: 0; }
 }
+
+/* --- BACKGROUND VIDEO STYLES --- */
+.background-video {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: -2; /* Keeps it behind the glow effects and content */
+    object-fit: cover; /* Ensures the video fills the screen without distorting */
+    opacity: 0.3; /* Lowers the opacity so your text and dashboard remain easy to read */
+}
