@@ -362,7 +362,7 @@ select {
 }
 
 .calendar-day {
-    background-color: #1e293b;
+    background-color: transparent;
     color: #cbd5e1;
     padding: 15px 10px;
     text-align: center;
