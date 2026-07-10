@@ -175,7 +175,7 @@ const users = [
     { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee" },
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
     { email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
-    { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "intern" },
+    { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "intern" },
     //{ email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
     //{ email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
@@ -187,9 +187,9 @@ const users = [
     { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" },
     //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
     //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
-    { email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
-    { email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
-    { email: "arun", password: "NRIN019", name: "Arun M", role: "intern" }
+    //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
+    //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
+    //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" }
 ];
 
 function populateEmployeeDropdown() {
