@@ -152,7 +152,18 @@ function generateCalendar() {
 function loadHolidays(){
     const holidayList = document.getElementById("holidayList");
     if(!holidayList) return;
-    const holidays = ["Project Review", "Employee Performance", "Weekly Status Update"];
+    const holidays = ["New Year-01.01.2026", 
+                      "Pongal-15.01.2026", 
+                      "Republic Day-26.01.2026",
+                     "Good Friday-03.04.2026",
+                     "Tamil New Year-14.04.2026",
+                     "Bakrid-27.05.2026",
+                     "Independence Day-15.08.2026",
+                     "Vinayak Chaturthi-14.09.2026",
+                     "Gandhi Jayanthi-02.10.2026",
+                     "Vijaya Dashami-20.10.2026",
+                     "Diwali-09.11.2026",
+                     "Christmas Day-25.12.2026"];
     holidayList.innerHTML = "";
     holidays.forEach(h => {
         const li = document.createElement("li");
