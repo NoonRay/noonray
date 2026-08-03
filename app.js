@@ -211,7 +211,7 @@ const users = [
     //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
     //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
     //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
-    { email: "devshrre", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern" }
+    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern" }
 ];
 
 function populateEmployeeDropdown() {
