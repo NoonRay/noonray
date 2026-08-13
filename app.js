@@ -72,7 +72,7 @@ function getLocalDate() {
     return formatISTDate(getTrueDate());
 }
 
-// SAFE FIREBASE TIMESTAMP PARSER (Prevents page crashes from bad data)
+// SAFE FIREBASE TIMESTAMP PARSER
 function parseFBDate(ts) {
     if (!ts) return null;
     if (typeof ts.toDate === 'function') return ts.toDate();
@@ -82,7 +82,7 @@ function parseFBDate(ts) {
 }
 
 // =====================================================
-// COMPANY HOLIDAYS (Add your dates here in YYYY-MM-DD format)
+// COMPANY HOLIDAYS
 // =====================================================
 const COMPANY_HOLIDAYS = [
      "2026-01-01",
@@ -103,13 +103,11 @@ function isWorkingDay(date) {
     if (!date || isNaN(date.getTime())) return false;
     const dateStr = formatISTDate(date);
     
-    // 1. Check if the date is in our Holiday array
     if (COMPANY_HOLIDAYS.includes(dateStr)) return false; 
 
-    // 2. Standard Weekend Logic
     const dayOfWeek = date.getDay(); 
-    if (dayOfWeek === 0) return false; // Sunday
-    if (dayOfWeek === 6) { // Even Saturdays
+    if (dayOfWeek === 0) return false; 
+    if (dayOfWeek === 6) { 
         const dateNum = date.getDate();
         const nthSaturday = Math.ceil(dateNum / 7);
         return nthSaturday % 2 !== 0;
@@ -183,7 +181,6 @@ function loadHolidays(){
 }
 
 // ---------------- USERS ----------------
-// Add joiningDate (YYYY-MM-DD format) for any new employees to prevent auto-marks before their start date.
 const users = [
     { email: "admin", password: "NR000", name: "Admin User", role: "admin" },
     { email: "kaushal", password: "NR001", name: "Dr Kaushal Kumar Jha", role: "admin" },
@@ -194,25 +191,14 @@ const users = [
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
-    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee",joiningDate: "2026-06-23"},
-    { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
-    //{ email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
+    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee" },
+    { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern", joiningDate: "2026-06-20" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "intern" },
-    //{ email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
-    //{ email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
-    //{ email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
-    //{ email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "intern" },
-    //{ email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
-    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern", joiningDate: "2026-06-10" },
-    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern", joiningDate: "2026-06-10" },
-    //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
-    //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
-    //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
-    //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
-    //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
-    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" }
+    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern", joiningDate: "2026-06-22" },
+    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" },
+    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern" }
 ];
 
 function populateEmployeeDropdown() {
@@ -329,15 +315,19 @@ const TaskTracker = {
     },
 
     async saveProject() {
+        const btn = document.getElementById("submitProjectBtn");
+        if(btn) { btn.disabled = true; btn.innerText = "Saving..."; }
+
         try {
             const name = document.getElementById("projectName").value.trim();
             const description = document.getElementById("projectDescription").value.trim();
             const editId = document.getElementById("editProjectId").value;
 
-            if(!name) { alert("Project name is required!"); return; }
+            if(!name) { alert("Project name is required!"); if(btn) { btn.disabled = false; btn.innerText = "Save Project"; } return; }
 
             if(editId) {
-                await updateDoc(doc(db, "projects", editId), { name, description });
+                // [IMPROVED]: Added updatedAt tracking
+                await updateDoc(doc(db, "projects", editId), { name, description, updatedAt: serverTimestamp() });
                 alert("Project Updated");
                 this.cancelProjectEdit();
             } else {
@@ -350,7 +340,12 @@ const TaskTracker = {
                 this.cancelProjectEdit();
             }
             this.renderAdminProjects();
-        } catch(e) { console.error(e); alert("Failed to save project."); }
+        } catch(e) { 
+            console.error(e); 
+            alert("Failed to save project."); 
+        } finally {
+            if(btn) { btn.disabled = false; btn.innerText = "Save Project"; }
+        }
     },
 
     editProject(id, name, desc) {
@@ -422,6 +417,9 @@ const TaskTracker = {
     },
 
     async assignTask(){
+        const btn = document.getElementById("submitTaskBtn");
+        if(btn) { btn.disabled = true; btn.innerText = "Processing..."; }
+
         try {
             const title = document.getElementById("taskTitle").value.trim();
             const description = document.getElementById("taskDescription").value.trim();
@@ -431,11 +429,17 @@ const TaskTracker = {
             const endDate = document.getElementById("endDate").value;
             const editTaskId = document.getElementById("editTaskId")?.value;
 
-            if(!title || !startDate || !endDate){ alert("Title and Dates are required!"); return; }
+            if(!title || !startDate || !endDate){ 
+                alert("Title and Dates are required!"); 
+                if(btn) { btn.disabled = false; btn.innerText = "Assign Task"; }
+                return; 
+            }
 
             const taskData = { title, description, employee, project, startDate, endDate };
 
             if (editTaskId) {
+                // [IMPROVED]: Track modifications
+                taskData.updatedAt = serverTimestamp();
                 await updateDoc(doc(db, "tasks", editTaskId), taskData);
                 alert("Task Updated");
                 this.cancelEdit();
@@ -451,6 +455,8 @@ const TaskTracker = {
         } catch(error){ 
             console.error(error); 
             alert("Firebase operation failed"); 
+        } finally {
+            if(btn) { btn.disabled = false; btn.innerText = "Assign Task"; }
         }
     },
 
@@ -654,7 +660,8 @@ const TaskTracker = {
         try{
             const status = document.getElementById(`status-${id}`).value;
             const remarks = document.getElementById(`remark-${id}`).value;
-            await updateDoc(doc(db,"tasks",id),{ status, remarks });
+            // [IMPROVED]: Also save timestamp when status changes
+            await updateDoc(doc(db,"tasks",id),{ status, remarks, updatedAt: serverTimestamp() });
             alert("Task Updated Successfully");
             this.renderEmployeeTasks();
         } catch(error){ 
@@ -685,7 +692,6 @@ const TaskTracker = {
         if (leavesTable) leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color:black;'>Loading...</td></tr>"; 
 
         try {
-            // 1. FETCH EXPLICIT LEAVES FROM DATABASE
             const leaveSnap = await getDocs(collection(db, "leaves"));
             let totalLeaveDays = 0;
             let employeeLeavesForTable = []; 
@@ -711,7 +717,6 @@ const TaskTracker = {
                 }
             });
 
-            // 2. FETCH ATTENDANCE & AUTO-FILL MISSING DAYS AS LEAVES
             const attSnap = await getDocs(collection(db, "attendance"));
             let existingRecords = [];
             let earliestDate = new Date(); 
@@ -736,14 +741,12 @@ const TaskTracker = {
 
             let allRecords = [];
             
-            // Set the cutoff to the 15th of June (matched with the previous hardcoded logic)
             const cutoffDate = new Date(2026, 5, 15);
             cutoffDate.setHours(0,0,0,0);
 
             let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
             if (isNaN(startMs)) startMs = cutoffDate.getTime(); 
             
-            // FIX: Override start date if the employee has a specific joining date
             const employeeData = users.find(u => u.name === employeeName);
             if (employeeData && employeeData.joiningDate) {
                 const joinDateMs = new Date(employeeData.joiningDate + 'T00:00:00').getTime();
@@ -766,14 +769,12 @@ const TaskTracker = {
                         if (attMap[dateString]) {
                             allRecords.push(attMap[dateString]);
                         } else {
-                            // ATTENDANCE TABLE: Auto-fill missing day as Leave
                             allRecords.push({
                                 dateStr: dateString,
                                 status: 'Leave', 
                                 isAutoFill: true 
                             });
                             
-                            // LEAVES TABLE: Push a dynamic record to show why they were marked Leave
                             employeeLeavesForTable.push({
                                 leaveType: 'Unmarked Absent',
                                 dayType: 'Full',
@@ -782,12 +783,10 @@ const TaskTracker = {
                                 status: 'Auto-Marked',
                                 reason: 'No Check-In on Working Day'
                             });
-                            // Increment total leave days
                             totalLeaveDays += 1;
                         }
                     } else {
-                        // BEFORE CUTOFF: ONLY show explicitly applied Leaves
-                        if (attMap[dateString] && attMap[dateString].status === 'Leave') {
+                        if (attMap[dateString] && (attMap[dateString].status === 'Leave' || attMap[dateString].status === 'Half-Day Leave')) {
                             allRecords.push(attMap[dateString]);
                         }
                     }
@@ -795,7 +794,6 @@ const TaskTracker = {
                 loopDate.setDate(loopDate.getDate() + 1);
             }
 
-            // 3. RENDER LEAVES TABLE 
             employeeLeavesForTable.sort((a, b) => {
                 let dA = new Date(a.fromDate || 0).getTime();
                 let dB = new Date(b.fromDate || 0).getTime();
@@ -829,13 +827,11 @@ const TaskTracker = {
                 leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No leaves requested.</td></tr>";
             }
 
-            // Update Total Leaves Header
             const reportDateElem = document.getElementById("reportDate");
             if (reportDateElem) {
                 reportDateElem.innerText = `${new Date().toLocaleDateString()} | Total Leaves Taken: ${totalLeaveDays} Days`;
             }
 
-            // 4. RENDER ATTENDANCE TABLE
             allRecords.sort((a, b) => {
                 let dA = new Date((a.dateStr || a.date) + 'T00:00:00').getTime();
                 let dB = new Date((b.dateStr || b.date) + 'T00:00:00').getTime();
@@ -846,7 +842,8 @@ const TaskTracker = {
 
             if(attendanceTable) attendanceTable.innerHTML = "";
             allRecords.forEach(att => {
-                const statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
+                let statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
+                if(att.status === 'Half-Day Leave') statusColor = 'color: #f59e0b;'; // Orange for half-days
                 const displayDate = att.dateStr || att.date || 'Unknown Date';
                 
                 let checkInText = '-';
@@ -895,7 +892,6 @@ const TaskTracker = {
                 attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
             }
 
-            // 5. RENDER TASKS TABLE
             const taskSnap = await getDocs(collection(db, "tasks"));
             let employeeTasks = [];
             
@@ -941,6 +937,12 @@ const TaskTracker = {
     },
 
     downloadPDF() {
+        // [IMPROVED]: Safeguard if html2pdf fails to load via CDN
+        if (typeof html2pdf === 'undefined') {
+            alert("The PDF generator library is still loading or failed to load. Please check your internet connection.");
+            return;
+        }
+
         const element = document.getElementById('pdfReportArea');
         const empNameElem = document.getElementById("reportEmployeeName");
         if(!element || !empNameElem) return;
@@ -966,11 +968,9 @@ const TaskTracker = {
         const todayStr = getLocalDate();
         const todayObj = new Date(todayStr + 'T00:00:00');
         
-        // Grab the buttons
         const checkInBtns = document.querySelectorAll(`button[onclick*="'CheckIn'"]`);
         const checkOutBtns = document.querySelectorAll(`button[onclick*="'CheckOut'"]`);
 
-        // IF TODAY IS A HOLIDAY OR WEEKEND: Disable buttons & show message
         if (!isWorkingDay(todayObj)) {
             msgElement.innerHTML = `Status: <strong>Holiday / Non-Working Day</strong> 🎉`;
             msgElement.style.color = '#eab308';
@@ -978,7 +978,6 @@ const TaskTracker = {
             checkOutBtns.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.3"; btn.style.cursor = "not-allowed"; });
             return; 
         } else {
-            // Re-enable buttons if it is a normal working day
             checkInBtns.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; });
             checkOutBtns.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; });
         }
@@ -1039,12 +1038,16 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
+        // [IMPROVED]: Prevent double-click spam
+        const buttons = document.querySelectorAll(`button[onclick*="handleAttendance"]`);
+        buttons.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.5"; });
+
         const todayStr = getLocalDate(); 
         const todayObj = new Date(todayStr + 'T00:00:00');
 
-        // EXTRA SECURITY: Block attendance if it's a holiday
         if (!isWorkingDay(todayObj)) {
             alert("Today is a Holiday or Weekend! Attendance is disabled.");
+            buttons.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; });
             return;
         }
         
@@ -1061,11 +1064,10 @@ const TaskTracker = {
                 }
             });
 
-            const msgElement = document.getElementById("attendanceStatusMsg");
-
             if (action === 'CheckIn') {
                 if (existingDocId) {
-                    alert("You have already checked in or marked leave for today."); return;
+                    alert("You have already checked in or marked leave for today."); 
+                    return;
                 }
                 await addDoc(collection(db, "attendance"), {
                     employee: user.name, 
@@ -1081,8 +1083,11 @@ const TaskTracker = {
                 if (!existingDocId) {
                     alert("You need to Check In first!"); return;
                 }
-                if (existingData.status === 'Leave') {
-                    alert("You are marked on leave today."); return;
+                if (existingData.status === 'Leave' || existingData.status === 'Half-Day Leave') {
+                    // Check if it's a full leave or half-day leave to allow logical checkout if necessary
+                    if(existingData.status === 'Leave') {
+                        alert("You are marked on leave today."); return;
+                    }
                 }
                 if (existingData.checkOutServerTime) {
                     alert("You have already checked out for today."); return;
@@ -1097,6 +1102,8 @@ const TaskTracker = {
             } 
         } catch (error) {
             console.error(error); alert("Operation failed. Check connection.");
+        } finally {
+            buttons.forEach(btn => { btn.disabled = false; btn.style.opacity = "1"; });
         }
     },
 
@@ -1316,16 +1323,12 @@ const TaskTracker = {
     async renderEmployeeLeaves() {
         try {
             const table = document.getElementById("employeeLeavesTable");
-            if (!table) {
-                console.warn("employeeLeavesTable missing in DOM");
-                return;
-            }
+            if (!table) return;
             table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
             const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
             if (!user) return;
 
-            // 1. Fetch explicitly applied leaves
             const snapshot = await getDocs(collection(db, "leaves"));
             let leaves = [];
             snapshot.forEach(docSnap => {
@@ -1335,7 +1338,6 @@ const TaskTracker = {
                 }
             });
 
-            // 2. Fetch attendance to find missing check-ins
             const attSnap = await getDocs(collection(db, "attendance"));
             let existingRecords = [];
             let earliestDate = new Date(); 
@@ -1358,14 +1360,12 @@ const TaskTracker = {
                 if (displayDate) attMap[displayDate] = att;
             });
 
-            // 3. Match the Admin cutoff date exactly (June 15, 2026) to fix the discrepancy
             const cutoffDate = new Date(2026, 5, 15);
             cutoffDate.setHours(0, 0, 0, 0);
 
             let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
             if(isNaN(startMs)) startMs = cutoffDate.getTime();
 
-            // FIX: Override start date if the user has a specific joining date
             const employeeData = users.find(u => u.name === user.name);
             if (employeeData && employeeData.joiningDate) {
                 const joinDateMs = new Date(employeeData.joiningDate + 'T00:00:00').getTime();
@@ -1380,14 +1380,12 @@ const TaskTracker = {
             const todayStr = getLocalDate();
             const endDate = new Date(todayStr + 'T00:00:00');
 
-            // 4. Loop through days and Auto-Fill missing working days
             while (loopDate <= endDate) {
                 if (isWorkingDay(loopDate)) {
                     const dateString = formatISTDate(loopDate);
                     
                     if (loopDate >= cutoffDate) {
                         if (!attMap[dateString]) {
-                            // Missing check-in on a working day
                             leaves.push({
                                 leaveType: 'Unmarked Absent',
                                 dayType: 'Full',
@@ -1402,7 +1400,6 @@ const TaskTracker = {
                 loopDate.setDate(loopDate.getDate() + 1);
             }
 
-            // 5. Sort and Render (Bulletproof Sort)
             leaves.sort((a, b) => {
                 let dA = new Date(a.fromDate || 0).getTime();
                 let dB = new Date(b.fromDate || 0).getTime();
@@ -1417,7 +1414,7 @@ const TaskTracker = {
                 if(data.status === 'Approved') statusColor = "#10b981"; 
                 if(data.status === 'Rejected') statusColor = "#ef4444"; 
                 if(data.status === 'Pending') statusColor = "#eab308";  
-                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; // Color for missing days
+                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; 
 
                 table.innerHTML += `
                     <tr>
@@ -1445,6 +1442,10 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
+        // [IMPROVED]: Disable Button While Processing
+        const submitBtn = document.querySelector('button[onclick="TaskTracker.applyLeave()"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Submitting..."; }
+
         const leaveTypeElem = document.querySelector('input[name="leaveType"]:checked');
         const dayTypeElem = document.querySelector('input[name="dayType"]:checked');
         if(!leaveTypeElem || !dayTypeElem) return;
@@ -1457,6 +1458,7 @@ const TaskTracker = {
 
         if (!fromDate || !toDate || !reason) {
             alert("Please select dates and provide a reason.");
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "Submit Leave"; }
             return;
         }
 
@@ -1483,6 +1485,8 @@ const TaskTracker = {
         } catch (error) {
             console.error(error);
             alert("Failed to submit leave application.");
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "Submit Leave"; }
         }
     },
 
@@ -1555,7 +1559,8 @@ const TaskTracker = {
         try {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
             
-            if (dayType === 'Full') {
+            // [IMPROVED]: Track both Full days and Half-Days to prevent loop vulnerabilities.
+            if (dayType === 'Full' || dayType.includes('Half')) {
                 let currentDate = new Date(fromDate + 'T00:00:00');
                 const endDate = new Date(toDate + 'T00:00:00');
                 
@@ -1566,7 +1571,7 @@ const TaskTracker = {
                         await addDoc(collection(db, "attendance"), {
                             employee: employeeName,
                             dateStr: dateString,
-                            status: 'Leave',
+                            status: dayType === 'Full' ? 'Leave' : 'Half-Day Leave',
                             checkInServerTime: null,
                             checkOutServerTime: null
                         });
