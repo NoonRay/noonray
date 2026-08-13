@@ -91,9 +91,9 @@ const COMPANY_HOLIDAYS = [
     "2026-04-03",
     "2026-04-14",
     "2026-05-27",
-    "2026-08-15",// Example: Independence Day
+    "2026-08-15",
     "2026-09-14",
-    "2026-10-02", // Example: Gandhi Jayanti
+    "2026-10-02", 
     "2026-10-20",
     "2026-11-09",
     "2026-12-25"  
@@ -183,6 +183,7 @@ function loadHolidays(){
 }
 
 // ---------------- USERS ----------------
+// Add joiningDate (YYYY-MM-DD format) for any new employees to prevent auto-marks before their start date.
 const users = [
     { email: "admin", password: "NR000", name: "Admin User", role: "admin" },
     { email: "kaushal", password: "NR001", name: "Dr Kaushal Kumar Jha", role: "admin" },
@@ -193,7 +194,7 @@ const users = [
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
-    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee" },
+    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee",joiningDate: "2026-06-23"},
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
     //{ email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
@@ -204,14 +205,14 @@ const users = [
     //{ email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "intern" },
     //{ email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
-    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern" },
-    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" },
+    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern", joiningDate: "2026-06-10" },
+    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern", joiningDate: "2026-06-10" },
     //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
     //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
     //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
     //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
     //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
-    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern" }
+    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" }
 ];
 
 function populateEmployeeDropdown() {
@@ -735,12 +736,21 @@ const TaskTracker = {
 
             let allRecords = [];
             
-            // Set the cutoff to the 15th of the current month
+            // Set the cutoff to the 15th of June (matched with the previous hardcoded logic)
             const cutoffDate = new Date(2026, 5, 15);
             cutoffDate.setHours(0,0,0,0);
 
             let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
             if (isNaN(startMs)) startMs = cutoffDate.getTime(); 
+            
+            // FIX: Override start date if the employee has a specific joining date
+            const employeeData = users.find(u => u.name === employeeName);
+            if (employeeData && employeeData.joiningDate) {
+                const joinDateMs = new Date(employeeData.joiningDate + 'T00:00:00').getTime();
+                if (!isNaN(joinDateMs) && startMs < joinDateMs) {
+                    startMs = joinDateMs;
+                }
+            }
             
             let loopDate = new Date(startMs);
             loopDate.setHours(0, 0, 0, 0);
@@ -776,7 +786,7 @@ const TaskTracker = {
                             totalLeaveDays += 1;
                         }
                     } else {
-                        // BEFORE 15th: ONLY show explicitly applied Leaves
+                        // BEFORE CUTOFF: ONLY show explicitly applied Leaves
                         if (attMap[dateString] && attMap[dateString].status === 'Leave') {
                             allRecords.push(attMap[dateString]);
                         }
@@ -1348,13 +1358,21 @@ const TaskTracker = {
                 if (displayDate) attMap[displayDate] = att;
             });
 
-            // 3. Set cutoff to the 15th of the current month
-            const currentNow = getTrueDate();
-            const cutoffDate = new Date(currentNow.getFullYear(), currentNow.getMonth(), 15);
+            // 3. Match the Admin cutoff date exactly (June 15, 2026) to fix the discrepancy
+            const cutoffDate = new Date(2026, 5, 15);
             cutoffDate.setHours(0, 0, 0, 0);
 
             let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
             if(isNaN(startMs)) startMs = cutoffDate.getTime();
+
+            // FIX: Override start date if the user has a specific joining date
+            const employeeData = users.find(u => u.name === user.name);
+            if (employeeData && employeeData.joiningDate) {
+                const joinDateMs = new Date(employeeData.joiningDate + 'T00:00:00').getTime();
+                if (!isNaN(joinDateMs) && startMs < joinDateMs) {
+                    startMs = joinDateMs;
+                }
+            }
 
             let loopDate = new Date(startMs);
             loopDate.setHours(0, 0, 0, 0);
