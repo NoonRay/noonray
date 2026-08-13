@@ -191,14 +191,25 @@ const users = [
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
-    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee" },
-    { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern", joiningDate: "2026-06-20" },
+    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee",joiningDate: "2026-06-23"},
+    { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
+    //{ email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "intern" },
+    //{ email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
+    //{ email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
+    //{ email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
+    //{ email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "intern" },
-    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern", joiningDate: "2026-06-22" },
-    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern" },
-    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern" }
+    //{ email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
+    { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "intern", joiningDate: "2026-06-10" },
+    { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "intern", joiningDate: "2026-06-10" },
+    //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
+    //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
+    //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
+    //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
+    //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
+    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" }
 ];
 
 function populateEmployeeDropdown() {
