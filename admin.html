@@ -5,28 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard</title>
 <link rel="stylesheet" href="styles.css">
+<!-- Added FontAwesome for beautiful Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script type="module" src="app.js"></script>
 </head>
 <body>
 
+<!-- Beautiful Global Background -->
+<video autoplay loop muted playsinline class="background-video">
+    <source src="MAKE_THE_VIDEO_AGAIN_TO_DOWNLO.mp4" type="video/mp4">
+</video>
+<div class="background-glow glow-1"></div>
+<div class="background-glow glow-2"></div>
+
 <div class="layout">
 
 <aside class="sidebar">
-    <h1>NoonRay.</h1>
+    <h1>NoonRay<span>.</span></h1>
 
-    <a class="active" href="#" onclick="TaskTracker.switchAdminView('tasks')">Admin Dashboard</a>
-    <a href="#" onclick="TaskTracker.switchAdminView('employees')">Employees</a>
-    <a href="#" onclick="TaskTracker.switchAdminView('projects')">Projects</a>
-    <a href="#" onclick="TaskTracker.switchAdminView('calendar')">Calendar View</a>
-    <a href="#" onclick="TaskTracker.switchAdminView('attendance')">Attendance</a>
+    <!-- Enhanced Sidebar with Icons -->
+    <a class="active" href="#" onclick="TaskTracker.switchAdminView('tasks')">
+        <i class="fa-solid fa-list-check"></i> Dashboard
+    </a>
+    <a href="#" onclick="TaskTracker.switchAdminView('employees')">
+        <i class="fa-solid fa-users"></i> Employees
+    </a>
+    <a href="#" onclick="TaskTracker.switchAdminView('projects')">
+        <i class="fa-solid fa-folder-open"></i> Projects
+    </a>
+    <a href="#" onclick="TaskTracker.switchAdminView('calendar')">
+        <i class="fa-solid fa-calendar-days"></i> Calendar View
+    </a>
+    <a href="#" onclick="TaskTracker.switchAdminView('attendance')">
+        <i class="fa-solid fa-user-clock"></i> Attendance
+    </a>
     <a href="#" onclick="TaskTracker.switchAdminView('leaves')">
-        Leave Requests 
+        <i class="fa-solid fa-plane-departure"></i> Leave Requests 
         <span id="leaveBadge" style="display:none; background:#ef4444; color:white; border-radius:50%; padding:2px 6px; font-size:12px; margin-left:5px;"></span>
     </a>
 
-    <button class="btn logout-btn" onclick="TaskTracker.logout()">
-        Logout
+    <button class="btn logout-btn full-btn" onclick="TaskTracker.logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
     </button>
 </aside>
 
@@ -34,31 +54,34 @@
 
 <div class="topbar">
     <div>
-        <h2>Admin Task Management</h2>
-        <p class="login-user">Logged in as: <strong id="username"></strong></p>
+        <h2>Admin Workspace</h2>
     </div>
+    <p class="login-user" style="color: #cbd5e1; font-size: 14px;">
+        <i class="fa-regular fa-circle-user" style="margin-right:5px;"></i> 
+        Logged in as: <strong id="username" style="color: white;"></strong>
+    </p>
 </div>
 
 <div id="adminTasksView">
     <div class="task-form card">
-        <h3 id="formTitle">Create & Assign Task</h3>
+        <h3 id="formTitle"><i class="fa-solid fa-plus" style="color:#3b82f6; margin-right:8px;"></i> Create & Assign Task</h3>
 
         <input type="hidden" id="editTaskId" value="">
 
         <label class="label">Task Title</label>
-        <input class="input" id="taskTitle" placeholder="Task Title">
+        <input class="input" id="taskTitle" placeholder="E.g., Implement new UI design...">
 
         <label class="label">Task Description</label>
-        <textarea class="input textarea" id="taskDescription" placeholder="Task Description"></textarea>
+        <textarea class="input textarea" id="taskDescription" placeholder="Detailed instructions for the employee..."></textarea>
 
         <div class="date-row">
             <div>
                 <label class="label">Assign To</label>
-                <select class="input" id="employeeSelect"></select>
+                <select class="input status-select" id="employeeSelect"></select>
             </div>
             <div>
                 <label class="label">Project</label>
-                <select class="input" id="projectSelect">
+                <select class="input status-select" id="projectSelect">
                     <option value="None">None</option>
                 </select>
             </div>
@@ -75,12 +98,16 @@
             </div>
         </div>
 
-        <button class="btn full-btn" id="submitTaskBtn" onclick="TaskTracker.assignTask()">Assign Task</button>
-        <button class="btn cancel-btn full-btn" id="cancelEditBtn" style="display:none; margin-top:10px;" onclick="TaskTracker.cancelEdit()">Cancel Edit</button>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn full-btn" id="submitTaskBtn" onclick="TaskTracker.assignTask()">
+                <i class="fa-solid fa-paper-plane"></i> Assign Task
+            </button>
+            <button class="btn cancel-btn full-btn" id="cancelEditBtn" style="display:none;" onclick="TaskTracker.cancelEdit()">Cancel Edit</button>
+        </div>
     </div>
 
     <div class="card">
-        <h3>Assigned Tasks</h3>
+        <h3><i class="fa-solid fa-bars-staggered" style="color:#10b981; margin-right:8px;"></i> Assigned Tasks</h3>
         <table class="task-table">
             <thead>
                 <tr>
@@ -100,21 +127,23 @@
 
 <div id="adminProjectsView" style="display: none;">
     <div class="task-form card">
-        <h3 id="projectFormTitle">Create Project</h3>
+        <h3 id="projectFormTitle"><i class="fa-solid fa-folder-plus" style="color:#3b82f6; margin-right:8px;"></i> Create Project</h3>
         <input type="hidden" id="editProjectId" value="">
         
         <label class="label">Project Name</label>
-        <input class="input" id="projectName" placeholder="project">
+        <input class="input" id="projectName" placeholder="Enter project name...">
         
         <label class="label">Project Description</label>
-        <textarea class="input textarea" id="projectDescription" placeholder="Project goals and details"></textarea>
+        <textarea class="input textarea" id="projectDescription" placeholder="Project goals and details..."></textarea>
 
-        <button class="btn full-btn" id="submitProjectBtn" onclick="TaskTracker.saveProject()">Save Project</button>
-        <button class="btn cancel-btn full-btn" id="cancelProjectEditBtn" style="display:none; margin-top:10px;" onclick="TaskTracker.cancelProjectEdit()">Cancel</button>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn full-btn" id="submitProjectBtn" onclick="TaskTracker.saveProject()">Save Project</button>
+            <button class="btn cancel-btn full-btn" id="cancelProjectEditBtn" style="display:none;" onclick="TaskTracker.cancelProjectEdit()">Cancel</button>
+        </div>
     </div>
 
     <div class="card">
-        <h3>Active Projects</h3>
+        <h3><i class="fa-solid fa-layer-group" style="color:#10b981; margin-right:8px;"></i> Active Projects</h3>
         <table class="task-table">
             <thead>
                 <tr>
@@ -130,8 +159,8 @@
 
 <div id="adminEmployeesView" style="display: none;">
     <div class="card">
-        <h3>Registered Employees</h3>
-        <p style="color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">Click on an employee name to view their tasks and download reports.</p>
+        <h3><i class="fa-solid fa-users-rectangle" style="color:#8b5cf6; margin-right:8px;"></i> Registered Employees</h3>
+        <p style="color: #94a3b8; margin-bottom: 20px; font-size: 14px;">Click on an employee name to view their tasks, attendance, and download PDF reports.</p>
         <table class="task-table">
             <thead>
                 <tr>
@@ -146,37 +175,38 @@
 </div>
 
 <div id="adminEmployeeDetailsView" style="display: none;">
-    <button class="btn cancel-btn" onclick="TaskTracker.switchAdminView('employees')" style="margin-bottom: 20px;">
-        &larr; Back to Employees
+    <button class="btn cancel-btn" onclick="TaskTracker.switchAdminView('employees')" style="margin-bottom: 20px; border-radius: 8px;">
+        <i class="fa-solid fa-arrow-left"></i> Back to Team
     </button>
     
-    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-        <select id="reportTypeSelect" class="input" style="width: 200px; margin-top: 0;" onchange="TaskTracker.toggleEmployeeReportView()">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <select id="reportTypeSelect" class="input status-select" style="width: 200px; margin-top: 0; background: rgba(0,0,0,0.4);" onchange="TaskTracker.toggleEmployeeReportView()">
             <option value="tasks">Tasks Report</option>
             <option value="attendance">Attendance Report</option>
             <option value="leaves">Leaves Report</option>
         </select>
         
-        <button class="btn" style="background: #10b981;" onclick="TaskTracker.downloadPDF()">
-            Download PDF Report
+        <button class="btn" style="background: #10b981; padding: 12px 24px;" onclick="TaskTracker.downloadPDF()">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF
         </button>
     </div>
 
-    <div class="card" id="pdfReportArea" style="background: white; color: black; padding: 40px; border-radius: 8px;">
-        <h2 style="color: black; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">
-            <span id="reportTitleType">Task</span> Report: <span id="reportEmployeeName"></span>
+    <!-- PDF Area is explicitly given a white background to print properly -->
+    <div class="card" id="pdfReportArea" style="background: white; color: black; padding: 40px; border-radius: 12px;">
+        <h2 style="color: black; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-weight: 700;">
+            <span id="reportTitleType">Task</span> Report: <span id="reportEmployeeName" style="color: #2563eb;"></span>
         </h2>
-        <p style="color: #475569; margin-bottom: 20px;">Generated on: <span id="reportDate"></span></p>
+        <p style="color: #475569; margin-bottom: 25px; font-weight: 500;">Generated on: <span id="reportDate"></span></p>
 
         <table class="task-table" id="reportTaskTableWrapper" style="color: black;">
             <thead>
                 <tr style="background-color: #f1f5f9;">
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Project</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Task</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Start Date</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">End Date</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Status</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Remarks</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Project</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Task</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Start Date</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">End Date</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Status</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Remarks</th>
                 </tr>
             </thead>
             <tbody id="reportTaskTable"></tbody>
@@ -185,11 +215,11 @@
         <table class="task-table" id="reportAttendanceTableWrapper" style="color: black; display: none;">
             <thead>
                 <tr style="background-color: #f1f5f9;">
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Date</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Status</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Check In</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Check Out</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Total Hours</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Date</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Status</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Check In</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Check Out</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Total Hours</th>
                 </tr>
             </thead>
             <tbody id="reportAttendanceTable"></tbody>
@@ -198,12 +228,12 @@
         <table class="task-table" id="reportLeavesTableWrapper" style="color: black; display: none;">
             <thead>
                 <tr style="background-color: #f1f5f9;">
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Leave Type</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Day Type</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">From</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">To</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Status</th>
-                    <th style="color: black; border-bottom: 2px solid #cbd5e1;">Reason</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Leave Type</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Day Type</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">From</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">To</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Status</th>
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Reason</th>
                 </tr>
             </thead>
             <tbody id="reportLeavesTable"></tbody>
@@ -213,10 +243,10 @@
 
 <div id="adminCalendarView" style="display: none;">
     <div class="card">
-        <h3>Task Calendar</h3>
+        <h3><i class="fa-regular fa-calendar" style="color:#eab308; margin-right:8px;"></i> Task Master Calendar</h3>
         <div id="mainCalendarGrid" class="calendar-grid"></div>
         
-        <h4 id="selectedDateTasksTitle">Select a date to view tasks</h4>
+        <h4 id="selectedDateTasksTitle" style="margin-top: 20px; color: #60a5fa; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">Select a date to view tasks</h4>
         <table class="task-table">
             <thead>
                 <tr>
@@ -232,10 +262,10 @@
 
 <div id="adminAttendanceView" style="display: none;">
     <div class="card">
-        <h3>Employee Attendance Log</h3>
-        <div style="margin-bottom: 15px;">
-            <label class="label">Filter by Date:</label>
-            <input type="date" id="attendanceFilterDate" class="input" style="width: 200px;" onchange="TaskTracker.renderAdminAttendance()">
+        <h3><i class="fa-solid fa-clock-rotate-left" style="color:#06b6d4; margin-right:8px;"></i> Company Attendance Log</h3>
+        <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+            <label class="label" style="margin: 0;">Filter Log Date:</label>
+            <input type="date" id="attendanceFilterDate" class="input" style="width: 220px; margin: 0;" onchange="TaskTracker.renderAdminAttendance()">
         </div>
         <table class="task-table">
             <thead>
@@ -255,7 +285,7 @@
 
 <div id="adminLeavesView" style="display: none;">
     <div class="card">
-        <h3>Employee Leave Requests</h3>
+        <h3><i class="fa-solid fa-calendar-check" style="color:#f43f5e; margin-right:8px;"></i> Team Leave Requests</h3>
         <table class="task-table">
             <thead>
                 <tr>
