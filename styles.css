@@ -94,7 +94,6 @@ body {
 }
 
 /* --- BUTTONS --- */
-/* Login button returned to simple, highly polished state */
 .login-btn {
     background: #2563eb;
     border: none;
@@ -190,7 +189,7 @@ body {
 
 .auth-card {
     width: 400px;
-    background: #0f172a; /* Reverted back to solid original color */
+    background: #0f172a; 
     padding: 40px 30px;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -416,6 +415,44 @@ select option { background: #0f172a; color: white; }
 #adminCalendarView .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 15px; margin-bottom: 25px; }
 #adminCalendarView .calendar-day { background-color: rgba(0,0,0,0.3); color: #cbd5e1; padding: 15px 10px; text-align: center; border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.2s ease-in-out; border: 1px solid rgba(255,255,255,0.05); }
 #adminCalendarView .calendar-day:hover { background-color: #3b82f6; color: white; transform: translateY(-3px); box-shadow: 0 6px 12px rgba(37,99,235,0.3); }
+
+/* --- MARQUEE AND FIRECRACKER STYLES RESTORED --- */
+.marquee-container {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: transparent;
+    color: white;
+    padding: 10px;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.marquee-text {
+    white-space: nowrap;
+    animation: scroll-left 30s linear infinite;
+    font-weight: bold;
+}
+
+@keyframes scroll-left {
+    from { transform: translateX(100%); }
+    to { transform: translateX(-100%); }
+}
+
+.firecracker {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: gold;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: explode 1s ease-out forwards;
+}
+
+@keyframes explode {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(5); opacity: 0; }
+}
 
 /* --- RESPONSIVE DESIGN --- */
 @media (max-width: 1024px) {
