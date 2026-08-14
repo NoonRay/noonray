@@ -325,6 +325,26 @@ const TaskTracker = {
         window.location.href = "index.html";
     },
 
+    // --- NEW: FUNCTION TO MANUALLY OVERRIDE AUTO-MARKED LEAVE ---
+    async markAutoLeaveAsPresent(employeeName, dateStr) {
+        if(!confirm(`Manually mark ${employeeName} as Present for ${dateStr}?`)) return;
+        try {
+            await addDoc(collection(db, "attendance"), {
+                employee: employeeName,
+                dateStr: dateStr,
+                status: 'Present',
+                checkInServerTime: null,
+                checkOutServerTime: null,
+                totalTime: 'Manual Override' // Identifies it as overridden by admin
+            });
+            alert("Marked as Present successfully!");
+            this.viewEmployeeDetails(employeeName); // Refresh view
+        } catch (error) { 
+            console.error(error); 
+            alert("Failed to mark as present."); 
+        }
+    },
+
     async saveProject() {
         const btn = document.getElementById("submitProjectBtn");
         if(btn) { btn.disabled = true; btn.innerText = "Saving..."; }
@@ -337,7 +357,6 @@ const TaskTracker = {
             if(!name) { alert("Project name is required!"); if(btn) { btn.disabled = false; btn.innerText = "Save Project"; } return; }
 
             if(editId) {
-                // [IMPROVED]: Added updatedAt tracking
                 await updateDoc(doc(db, "projects", editId), { name, description, updatedAt: serverTimestamp() });
                 alert("Project Updated");
                 this.cancelProjectEdit();
@@ -449,7 +468,6 @@ const TaskTracker = {
             const taskData = { title, description, employee, project, startDate, endDate };
 
             if (editTaskId) {
-                // [IMPROVED]: Track modifications
                 taskData.updatedAt = serverTimestamp();
                 await updateDoc(doc(db, "tasks", editTaskId), taskData);
                 alert("Task Updated");
@@ -616,7 +634,6 @@ const TaskTracker = {
                 }
             });
 
-            // Bulletproof sorting
             myTasks.sort((a, b) => {
                 let dA = new Date(a.startDate || 0).getTime();
                 let dB = new Date(b.startDate || 0).getTime();
@@ -671,7 +688,6 @@ const TaskTracker = {
         try{
             const status = document.getElementById(`status-${id}`).value;
             const remarks = document.getElementById(`remark-${id}`).value;
-            // [IMPROVED]: Also save timestamp when status changes
             await updateDoc(doc(db,"tasks",id),{ status, remarks, updatedAt: serverTimestamp() });
             alert("Task Updated Successfully");
             this.renderEmployeeTasks();
@@ -700,7 +716,7 @@ const TaskTracker = {
         const leavesTable = document.getElementById("reportLeavesTable"); 
         if (taskTable) taskTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color:black;'>Loading...</td></tr>";
         if (attendanceTable) attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color:black;'>Loading...</td></tr>";
-        if (leavesTable) leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color:black;'>Loading...</td></tr>"; 
+        if (leavesTable) leavesTable.innerHTML = "<tr><td colspan='7' style='text-align:center; color:black;'>Loading...</td></tr>"; 
 
         try {
             const leaveSnap = await getDocs(collection(db, "leaves"));
@@ -822,6 +838,7 @@ const TaskTracker = {
                 if(l.status === 'Auto-Marked') statusColor = "#ef4444"; 
                 
                 if (leavesTable) {
+                    // [IMPROVED]: Display the Action Button for Auto-Marked leaves
                     leavesTable.innerHTML += `
                         <tr>
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType || '-'}</td>
@@ -830,12 +847,15 @@ const TaskTracker = {
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.toDate || '-'}</td>
                             <td style="color: ${statusColor}; border-bottom: 1px solid #e2e8f0;"><strong>${l.status || '-'}</strong></td>
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.reason || '-'}</td>
+                            <td style="color: black; border-bottom: 1px solid #e2e8f0;">
+                                ${l.status === 'Auto-Marked' ? `<button class="action-btn" style="background:#10b981; padding: 4px 8px; font-size: 11px;" onclick="TaskTracker.markAutoLeaveAsPresent('${employeeName}', '${l.fromDate}')"><i class="fa-solid fa-check"></i> Mark Present</button>` : '-'}
+                            </td>
                         </tr>
                     `;
                 }
             });
             if(employeeLeavesForTable.length === 0 && leavesTable) {
-                leavesTable.innerHTML = "<tr><td colspan='6' style='text-align:center; color: black;'>No leaves requested.</td></tr>";
+                leavesTable.innerHTML = "<tr><td colspan='7' style='text-align:center; color: black;'>No leaves requested.</td></tr>";
             }
 
             const reportDateElem = document.getElementById("reportDate");
@@ -854,7 +874,7 @@ const TaskTracker = {
             if(attendanceTable) attendanceTable.innerHTML = "";
             allRecords.forEach(att => {
                 let statusColor = att.status === 'Present' ? 'color: #10b981;' : 'color: #ef4444;';
-                if(att.status === 'Half-Day Leave') statusColor = 'color: #f59e0b;'; // Orange for half-days
+                if(att.status === 'Half-Day Leave') statusColor = 'color: #f59e0b;';
                 const displayDate = att.dateStr || att.date || 'Unknown Date';
                 
                 let checkInText = '-';
@@ -948,7 +968,6 @@ const TaskTracker = {
     },
 
     downloadPDF() {
-        // [IMPROVED]: Safeguard if html2pdf fails to load via CDN
         if (typeof html2pdf === 'undefined') {
             alert("The PDF generator library is still loading or failed to load. Please check your internet connection.");
             return;
@@ -1049,7 +1068,6 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        // [IMPROVED]: Prevent double-click spam
         const buttons = document.querySelectorAll(`button[onclick*="handleAttendance"]`);
         buttons.forEach(btn => { btn.disabled = true; btn.style.opacity = "0.5"; });
 
@@ -1095,7 +1113,6 @@ const TaskTracker = {
                     alert("You need to Check In first!"); return;
                 }
                 if (existingData.status === 'Leave' || existingData.status === 'Half-Day Leave') {
-                    // Check if it's a full leave or half-day leave to allow logical checkout if necessary
                     if(existingData.status === 'Leave') {
                         alert("You are marked on leave today."); return;
                     }
@@ -1453,7 +1470,6 @@ const TaskTracker = {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser")); 
         if (!user) return;
 
-        // [IMPROVED]: Disable Button While Processing
         const submitBtn = document.querySelector('button[onclick="TaskTracker.applyLeave()"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = "Submitting..."; }
 
@@ -1570,7 +1586,6 @@ const TaskTracker = {
         try {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Approved' });
             
-            // [IMPROVED]: Track both Full days and Half-Days to prevent loop vulnerabilities.
             if (dayType === 'Full' || dayType.includes('Half')) {
                 let currentDate = new Date(fromDate + 'T00:00:00');
                 const endDate = new Date(toDate + 'T00:00:00');
