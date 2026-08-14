@@ -53,7 +53,7 @@ body {
     height: auto;
     z-index: -2;
     object-fit: cover;
-    opacity: 0.25; /* Dimmed slightly for dashboards to keep text readable */
+    opacity: 0.3; /* Subtle background for index page */
     pointer-events: none;
 }
 
@@ -94,6 +94,22 @@ body {
 }
 
 /* --- BUTTONS --- */
+/* Login button returned to simple, highly polished state */
+.login-btn {
+    background: #2563eb;
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.login-btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+.login-btn:active { transform: translateY(0); }
+
 .btn {
     background: #2563eb;
     border: none;
@@ -117,10 +133,7 @@ body {
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
 }
 
-.btn:active {
-    transform: translateY(0);
-}
-
+.btn:active { transform: translateY(0); }
 .full-btn { width: 100%; }
 
 .logout-btn {
@@ -165,6 +178,25 @@ body {
     transition: all 0.2s ease;
 }
 .save-btn:hover { background: #16a34a; transform: translateY(-1px); }
+
+/* --- LOGIN PAGE & ORIGINAL AUTH CARD --- */
+.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    z-index: 10;
+}
+
+.auth-card {
+    width: 400px;
+    background: #0f172a; /* Reverted back to solid original color */
+    padding: 40px 30px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+}
 
 /* --- LAYOUT & SIDEBAR --- */
 .layout {
@@ -337,7 +369,7 @@ select option { background: #0f172a; color: white; }
 .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 .badge-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-/* --- INDEX HERO & CALENDAR (From previous) --- */
+/* --- INDEX HERO & CALENDAR --- */
 .content-wrapper { flex: 1; display: flex; flex-direction: column; }
 .hero { margin-top: 20px; margin-bottom: 0; }
 .hero-left h1 { font-size: 52px; margin-bottom: 10px; }
