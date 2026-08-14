@@ -5,42 +5,67 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Employee Dashboard</title>
 <link rel="stylesheet" href="styles.css">
+<!-- Added FontAwesome for beautiful Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 <script type="module" src="app.js"></script>
 </head>
 <body>
 
+<!-- Beautiful Global Background -->
+<video autoplay loop muted playsinline class="background-video">
+    <source src="MAKE_THE_VIDEO_AGAIN_TO_DOWNLO.mp4" type="video/mp4">
+</video>
+<div class="background-glow glow-1"></div>
+<div class="background-glow glow-2"></div>
+
 <div class="layout">
 
 <aside class="sidebar">
-    <h1>NoonRay.</h1>
-    <a class="active" href="#" onclick="TaskTracker.switchEmployeeView('dashboard')">Employee Dashboard</a>
-    <a href="#" onclick="TaskTracker.switchEmployeeView('dashboard')">My Tasks</a>
-    <a href="#" onclick="TaskTracker.switchEmployeeView('leaveForm')">Leave Form</a>
-    <button class="btn logout-btn" onclick="TaskTracker.logout()">Logout</button>
+    <h1>NoonRay<span>.</span></h1>
+    
+    <a class="active" href="#" onclick="TaskTracker.switchEmployeeView('dashboard')">
+        <i class="fa-solid fa-house"></i> Home Dashboard
+    </a>
+    <a href="#" onclick="TaskTracker.switchEmployeeView('dashboard')">
+        <i class="fa-solid fa-list-check"></i> My Tasks
+    </a>
+    <a href="#" onclick="TaskTracker.switchEmployeeView('leaveForm')">
+        <i class="fa-solid fa-paper-plane"></i> Leave Portal
+    </a>
+    
+    <button class="btn logout-btn full-btn" onclick="TaskTracker.logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+    </button>
 </aside>
 
 <main class="main">
     <div class="topbar">
         <div>
             <h2>Employee Portal</h2>
-            <p class="login-user">Logged in as: <strong id="username"></strong></p>
         </div>
+        <p class="login-user" style="color: #cbd5e1; font-size: 14px;">
+            <i class="fa-regular fa-circle-user" style="margin-right:5px;"></i> 
+            Logged in as: <strong id="username" style="color: white;"></strong>
+        </p>
     </div>
 
     <!-- Main Dashboard View -->
     <div id="employeeDashboardView">
-        <div class="card" style="margin-bottom: 20px;">
-            <h3>Daily Attendance</h3>
-            <p id="attendanceStatusMsg" style="margin-bottom: 15px; color: #cbd5e1;">Status: Not marked for today.</p>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn" style="background: #10b981;" onclick="TaskTracker.handleAttendance('CheckIn')">Check In</button>
-                <button class="btn" style="background: #eab308;" onclick="TaskTracker.handleAttendance('CheckOut')">Check Out</button>
-                <!-- Live/Leave button removed from here -->
+        <div class="card" style="margin-bottom: 25px; border-left: 4px solid #10b981;">
+            <h3><i class="fa-regular fa-clock" style="margin-right:8px; color:#10b981;"></i> Daily Attendance</h3>
+            <p id="attendanceStatusMsg" style="margin-bottom: 20px; font-size: 15px; color: #cbd5e1;">Status: Not marked for today.</p>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn" style="background: #10b981; font-size: 15px; padding: 12px 25px;" onclick="TaskTracker.handleAttendance('CheckIn')">
+                    <i class="fa-solid fa-fingerprint"></i> Check In
+                </button>
+                <button class="btn" style="background: #eab308; font-size: 15px; padding: 12px 25px;" onclick="TaskTracker.handleAttendance('CheckOut')">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i> Check Out
+                </button>
             </div>
         </div>
 
         <div class="card">
-            <h3>Assigned Tasks</h3>
+            <h3><i class="fa-solid fa-clipboard-check" style="margin-right:8px; color:#3b82f6;"></i> My Assigned Tasks</h3>
             <table class="task-table">
                 <thead>
                     <tr>
@@ -62,52 +87,56 @@
     <!-- New Leave Form View -->
     <div id="employeeLeaveFormView" style="display: none;">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>My Leaves</h2>
-            <button class="btn" style="background: #2563eb;" onclick="TaskTracker.toggleLeaveForm()">+ Apply Leave</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h2 style="font-weight: 600;">Leave Management</h2>
+            <button class="btn" style="background: #2563eb; font-size: 15px;" onclick="TaskTracker.toggleLeaveForm()">
+                <i class="fa-solid fa-plus"></i> Apply Leave
+            </button>
         </div>
 
-        <div class="card" id="leaveFormContainer" style="display: none; margin-bottom: 20px;">
-            <h3 style="margin-bottom: 20px;">Apply for Leave</h3>
+        <div class="card" id="leaveFormContainer" style="display: none; margin-bottom: 25px;">
+            <h3 style="margin-bottom: 20px;"><i class="fa-solid fa-pen-to-square" style="color:#3b82f6; margin-right:8px;"></i> Leave Application Form</h3>
             
             <div class="date-row">
-                <div>
-                    <label class="label">LEAVE TYPE</label>
-                    <label style="margin-right: 15px;"><input type="radio" name="leaveType" value="Leave" checked> Leave</label>
-                    <label><input type="radio" name="leaveType" value="Optional"> Optional</label>
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                    <label class="label" style="margin-top:0;">LEAVE TYPE</label>
+                    <label style="margin-right: 20px; cursor: pointer;"><input type="radio" name="leaveType" value="Leave" checked> Leave</label>
+                    <label style="cursor: pointer;"><input type="radio" name="leaveType" value="Optional"> Optional</label>
                 </div>
-                <div>
-                    <label class="label">DAY TYPE</label>
-                    <label style="margin-right: 15px;"><input type="radio" name="dayType" value="Full" checked> Full</label>
-                    <label style="margin-right: 15px;"><input type="radio" name="dayType" value="First Half"> First Half</label>
-                    <label><input type="radio" name="dayType" value="Second Half"> Second Half</label>
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                    <label class="label" style="margin-top:0;">DAY TYPE</label>
+                    <label style="margin-right: 20px; cursor: pointer;"><input type="radio" name="dayType" value="Full" checked> Full</label>
+                    <label style="margin-right: 20px; cursor: pointer;"><input type="radio" name="dayType" value="First Half"> First Half</label>
+                    <label style="cursor: pointer;"><input type="radio" name="dayType" value="Second Half"> Second Half</label>
                 </div>
             </div>
 
             <div class="date-row" style="margin-top: 20px;">
                 <div>
-                    <label class="label">FROM</label>
+                    <label class="label">START DATE (FROM)</label>
                     <input type="date" class="input" id="leaveFromDate">
                 </div>
                 <div>
-                    <label class="label">TO</label>
+                    <label class="label">END DATE (TO)</label>
                     <input type="date" class="input" id="leaveToDate">
                 </div>
             </div>
 
             <div style="margin-top: 20px;">
-                <label class="label">REASON</label>
-                <textarea class="input textarea" id="leaveReason" placeholder="Type here leave reason"></textarea>
+                <label class="label">REASON FOR LEAVE</label>
+                <textarea class="input textarea" id="leaveReason" placeholder="Please provide a brief explanation..."></textarea>
             </div>
 
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button class="btn" style="background: #10b981;" onclick="TaskTracker.applyLeave()">Submit Leave</button>
-                <button class="btn cancel-btn" onclick="TaskTracker.toggleLeaveForm()">Cancel</button>
+            <div style="margin-top: 25px; display: flex; gap: 15px;">
+                <button class="btn" style="background: #10b981; padding: 12px 24px;" onclick="TaskTracker.applyLeave()">
+                    <i class="fa-solid fa-paper-plane"></i> Submit Request
+                </button>
+                <button class="btn cancel-btn" style="padding: 12px 24px;" onclick="TaskTracker.toggleLeaveForm()">Cancel</button>
             </div>
         </div>
 
         <div class="card">
-            <h3>Leave History</h3>
+            <h3><i class="fa-solid fa-clock-rotate-left" style="margin-right:8px; color:#f43f5e;"></i> My Leave History</h3>
             <table class="task-table">
                 <thead>
                     <tr>
