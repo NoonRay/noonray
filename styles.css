@@ -62,11 +62,28 @@ body {
     border-radius: 14px;
     cursor: pointer;
     font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Added smooth transition */
+}
+
+.login-btn:hover, .btn:hover {
+    background: #1d4ed8;
+}
+
+.login-btn:active, .btn:active {
+    transform: scale(0.98);
+}
+
+/* --- NEW WRAPPER TO PUSH CONTENT DOWN --- */
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    /* Takes up full height minus the navbar roughly */
+    min-height: calc(100vh - 120px); 
 }
 
 .hero {
-    margin-top: 120px;
-    margin-bottom: 70px;
+    margin-top: 60px;
+    margin-bottom: 0;
 }
 
 .hero-left h1 {
@@ -93,13 +110,17 @@ body {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     gap: 20px;
+    /* margin-top: auto pushes the grid to the absolute bottom of the wrapper */
+    margin-top: auto; 
+    padding-bottom: 60px; /* Space above the marquee */
 }
 
 .dashboard-card {
-    background: rgba(15, 23, 42, 0.8);
+    background: rgba(15, 23, 42, 0.6); /* Slightly more transparent to see the video */
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     padding: 24px;
+    backdrop-filter: blur(10px); /* Adds a modern frosted glass effect over the video */
 }
 
 .live-time {
@@ -192,10 +213,17 @@ body {
     color: white;
     text-decoration: none;
     margin-top: 18px;
+    transition: color 0.2s ease;
+}
+
+.sidebar a:hover {
+    color: #60a5fa;
 }
 
 .main {
     flex: 1;
+    /* Prevents horizontal overflow on the main content area */
+    max-width: calc(100vw - 290px); 
 }
 
 .topbar {
@@ -210,6 +238,7 @@ body {
     padding: 25px;
     border-radius: 20px;
     margin-bottom: 20px;
+    overflow-x: auto; /* Allows tables inside cards to scroll instead of breaking the layout */
 }
 
 .task-table {
@@ -236,6 +265,11 @@ select {
 .logout-btn {
     margin-top: 30px;
     width: 100%;
+    background: #ef4444;
+}
+
+.logout-btn:hover {
+    background: #dc2626;
 }
 
 .status-select {
@@ -260,6 +294,11 @@ select {
     border-radius: 10px;
     color: white;
     cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.save-btn:hover {
+    opacity: 0.8;
 }
 
 .login-text {
@@ -285,6 +324,11 @@ select {
     cursor: pointer;
     margin-right: 5px;
     color: white;
+    transition: opacity 0.2s ease;
+}
+
+.action-btn:hover {
+    opacity: 0.8;
 }
 
 .edit-btn {
@@ -346,6 +390,7 @@ select {
 #reportAttendanceTableWrapper th:nth-child(3) { width: 20%; } 
 #reportAttendanceTableWrapper th:nth-child(4) { width: 20%; } 
 #reportAttendanceTableWrapper th:nth-child(5) { width: 20%; } 
+
 /* Prevent table rows from splitting across PDF pages */
 #pdfReportArea .task-table tr {
     page-break-inside: avoid !important;
@@ -378,6 +423,7 @@ select {
     color: white;
     transform: translateY(-2px);
 }
+
 /* Contest Marquee */
 .marquee-container {
     position: fixed;
@@ -426,7 +472,87 @@ select {
     min-height: 100%;
     width: auto;
     height: auto;
-    z-index: -2; /* Keeps it behind the glow effects and content */
-    object-fit: cover; /* Ensures the video fills the screen without distorting */
-    opacity: 0.3; /* Lowers the opacity so your text and dashboard remain easy to read */
+    z-index: -2;
+    object-fit: cover;
+    opacity: 0.3;
+}
+
+/* =====================================================
+   RESPONSIVE DESIGN (MOBILE & TABLET SUPPORT) 
+   ===================================================== */
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .live-time,
+    .calendar-card {
+        grid-column: span 1;
+    }
+    
+    .main {
+        max-width: calc(100vw - 270px);
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+        border-radius: 14px;
+        padding: 15px;
+    }
+
+    .main {
+        max-width: 100%;
+    }
+
+    .hero {
+        margin-top: 30px;
+    }
+
+    .hero-left h1 {
+        font-size: 38px;
+    }
+
+    .hero-main-text {
+        font-size: 22px;
+    }
+    
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    /* Force tables to become horizontally scrollable on small screens */
+    .task-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .date-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .calendar-days,
+    .calendar-dates {
+        gap: 5px;
+    }
+    
+    .calendar-dates div {
+        padding: 10px 5px;
+        font-size: 14px;
+    }
 }
