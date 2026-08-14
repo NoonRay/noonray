@@ -3,33 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login</title>
+<title>Login - NoonRay</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 <script type="module" src="app.js"></script>
 </head>
 <body>
 
 <div class="auth-page">
-<div class="auth-card">
+    <!-- Subtle background glows for depth -->
+    <div class="background-glow glow-1"></div>
+    <div class="background-glow glow-2"></div>
+    
+    <div class="auth-card">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 class="logo" style="font-size: 36px; margin-bottom: 5px;">NoonRay<span style="color: #22c55e;">.</span></h1>
+            <p class="login-text" style="margin-top:0; color:#94a3b8;">Sign in to your account</p>
+        </div>
 
-<h2>Login</h2>
+        <label class="label"><i class="fa-regular fa-envelope" style="margin-right:5px;"></i> Username</label>
+        <input class="input" type="email" id="email" placeholder="Enter your username">
 
-<p class="login-text">
-Get Started 
-</p>
+        <label class="label"><i class="fa-solid fa-lock" style="margin-right:5px;"></i> Password</label>
+        <input class="input" type="password" id="password" placeholder="Enter your password">
 
-<label class="label">UserName</label>
-<input class="input" type="email" id="email" placeholder="User Name">
-
-<label class="label">Password</label>
-<input class="input" type="password" id="password" placeholder="Enter Password">
-
-<button class="btn full-btn" onclick="TaskTracker.login()">
-Login
-</button>
-
-
-</div>
+        <button class="btn full-btn" style="margin-top: 20px; padding: 14px; font-size: 16px;" onclick="TaskTracker.login()">
+            Login <i class="fa-solid fa-arrow-right-to-bracket" style="margin-left: 5px;"></i>
+        </button>
+        
+        <p style="text-align: center; margin-top: 25px; font-size: 14px;">
+            <a href="index.html" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+                <i class="fa-solid fa-arrow-left" style="margin-right:5px;"></i> Back to Home
+            </a>
+        </p>
+    </div>
 </div>
 
 </body>
