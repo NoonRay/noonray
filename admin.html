@@ -255,6 +255,15 @@
     </div>
 </div>
 
+<div class="card" style="margin-top: 20px; margin-bottom: 25px;">
+        <h3><i class="fa-solid fa-folder-open" style="color:#8b5cf6; margin-right:8px;"></i> Shared D: Drive Files</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <input type="file" id="sharedFileInput" class="input" style="flex: 1;">
+            <button class="btn" style="background: #8b5cf6;" onclick="TaskTracker.uploadSharedFile()">Upload File</button>
+        </div>
+        <ul id="sharedFileList" style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto;"></ul>
+    </div>
+
 <div id="adminAttendanceView" style="display: none;">
     <div class="card">
         <h3><i class="fa-solid fa-clock-rotate-left" style="color:#06b6d4; margin-right:8px;"></i> Company Attendance Log</h3>
