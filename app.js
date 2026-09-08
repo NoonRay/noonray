@@ -191,7 +191,7 @@ const users = [
     { email: "shareef", password: "NR007", name: "Ahamad shareef Sheik", role: "employee" },
     { email: "haris", password: "NR010", name: "Haris E", role: "employee" },
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
-    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee",joiningDate: "2026-06-23"},
+    { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee", joiningDate: "2026-06-23" },
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "employee" },
@@ -1039,7 +1039,7 @@ const TaskTracker = {
                             statusHtml += `<br><strong style="color: #60a5fa;">Total Hours: ${hours}h ${minutes}m</strong>`;
                         }
                     } else {
-                        statusHtml += `<strong>Check Out:</strong> <span style="color: #94a3b8;">Not checked out yet</span>`;
+                        statusHtml += `<strong>Check Out:</strong> <span style="94a3b8;">Not checked out yet</span>`;
                     }
                 }
             } else {
@@ -1680,11 +1680,22 @@ const TaskTracker = {
 
         try {
             // 1. Create physical folder on D: Drive
-            await fetch('http://192.168.0.136:3000/create-folder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            });
+            try {
+                const response = await fetch('http://192.168.0.136:3000/create-folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Server responded with an error.");
+                }
+            } catch (networkError) {
+                console.error("Network Error:", networkError);
+                alert("NETWORK ERROR: Your browser is blocking the connection to the Node.js server. If you are on GitHub Pages (https://), you cannot connect to a local server (http://). Please open the admin.html file directly from your computer to use the Drive feature.");
+                if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
+                return; // Stop execution here if node server fails
+            }
 
             // 2. Save permissions to Firebase
             await addDoc(collection(db, "drive_folders"), {
@@ -1699,7 +1710,7 @@ const TaskTracker = {
             this.renderDrive();
         } catch (e) {
             console.error(e); 
-            alert("Failed to create folder. Is your Node.js server running?");
+            alert("Failed to save to Firebase.");
         } finally {
             if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
         }
@@ -1869,6 +1880,7 @@ const TaskTracker = {
                 method: 'POST', body: formData 
             });
             alert('Uploaded successfully!');
+            fileInput.value = "";
             fileInput.value = '';
             this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
@@ -1927,13 +1939,13 @@ window.onload = async () => {
     });
 
     if (currentPage === "admin.html") {
-        const savedView = sessionStorage.getItem("currentAdminView") || "tasks";
+        const savedView = sessionStorage.getItem("currentAdminView")["tasks"];
         if (savedView === "employeeDetails") {
             const savedEmpName = sessionStorage.getItem("currentEmployeeDetailName");
             if (savedEmpName) TaskTracker.viewEmployeeDetails(savedEmpName);
             else TaskTracker.switchAdminView('employees'); 
         } else {
-            TaskTracker.switchAdminView(savedView);
+            TaskTracker.switchAdminView(savedView || "tasks");
         }
         TaskTracker.updateLeaveBadge(); 
     } else if (currentPage === "employee.html") {
@@ -1941,4 +1953,3 @@ window.onload = async () => {
         TaskTracker.switchEmployeeView(savedView);
     }
 };
-now i can click submit bt if i click there comes a error "failed to crate folder . is ur node js rining  " but as you see it is running
