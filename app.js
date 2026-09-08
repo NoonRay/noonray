@@ -1676,7 +1676,46 @@ const TaskTracker = {
             form.style.display = 'none';
         }
     },
+   // --- THIS IS THE MISSING FUNCTION TO ADD ---
+    async saveDriveFolder() {
+        const name = document.getElementById('newFolderName').value.trim();
+        if (!name) return alert('Folder name required.');
+        if (name.includes('/') || name.includes('\\')) return alert('Invalid characters in folder name.');
 
+        const viewers = Array.from(document.querySelectorAll('#folderViewers input:checked')).map(cb => cb.value);
+        const uploaders = Array.from(document.querySelectorAll('#folderUploaders input:checked')).map(cb => cb.value);
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+
+        const btn = document.querySelector('button[onclick="TaskTracker.saveDriveFolder()"]');
+        if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
+
+        try {
+            // 1. Create physical folder on D: Drive
+            await fetch('http://192.168.0.136:3000/create-folder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+
+            // 2. Save permissions to Firebase
+            await addDoc(collection(db, "drive_folders"), {
+                name, viewers, uploaders,
+                createdBy: user.name,
+                createdAt: serverTimestamp()
+            });
+
+            alert("Folder Created Successfully!");
+            document.getElementById('newFolderName').value = '';
+            this.toggleCreateFolderForm();
+            this.renderDrive();
+        } catch (e) {
+            console.error(e); 
+            alert("Failed to create folder. Is your Node.js server running?");
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
+        }
+    },
+    // --- END OF MISSING FUNCTION ---
     async renderDrive() {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
         const foldersList = document.getElementById("driveFoldersList");
