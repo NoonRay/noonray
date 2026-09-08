@@ -1632,19 +1632,19 @@ const TaskTracker = {
         } catch (error) { console.error(error); }
     },
 
-    // --- LOCAL D: DRIVE LOGIC (NO FIREBASE) ---
+    // --- FIREBASE-BACKED COMPANY DRIVE LOGIC ---
     currentDriveFolderName: null,
 
     toggleCreateFolderForm() {
         const form = document.getElementById('createFolderForm');
-        document.getElementById('editFolderForm').style.display = 'none'; // Hide edit form if open
+        const editForm = document.getElementById('editFolderForm');
+        if (editForm) editForm.style.display = 'none';
 
         if (form.style.display === 'none') {
             form.style.display = 'block';
             const viewers = document.getElementById('folderViewers');
             const uploaders = document.getElementById('folderUploaders');
             
-            // Build Checkboxes instead of Select Options
             let html = '<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" checked> All Employees</label>';
             users.forEach(u => {
                 if (u.role !== 'admin') html += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
@@ -1662,81 +1662,31 @@ const TaskTracker = {
         if (!name) return alert('Folder name required.');
         if (name.includes('/') || name.includes('\\')) return alert('Invalid characters in folder name.');
 
-        // Get values from checked checkboxes
         const viewers = Array.from(document.querySelectorAll('#folderViewers input:checked')).map(cb => cb.value);
         const uploaders = Array.from(document.querySelectorAll('#folderUploaders input:checked')).map(cb => cb.value);
         const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
 
         try {
+            // 1. Create physical folder on D: Drive
             await fetch('http://192.168.0.136:3000/create-folder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, viewers, uploaders, createdBy: user.name })
+                body: JSON.stringify({ name })
             });
-            alert("Folder Created on D: Drive!");
+
+            // 2. Save permissions to Firebase so it's permanently remembered
+            await addDoc(collection(db, "drive_folders"), {
+                name, viewers, uploaders,
+                createdBy: user.name,
+                createdAt: serverTimestamp()
+            });
+
+            alert("Folder Created Successfully!");
             document.getElementById('newFolderName').value = '';
             this.toggleCreateFolderForm();
             this.renderDrive();
         } catch (e) {
-            console.error(e); alert("Failed to create folder. Is the host server running?");
-        }
-    },
-
-    openEditFolder(folderName, viewersStr, uploadersStr) {
-        document.getElementById('createFolderForm').style.display = 'none'; // Hide create form
-        document.getElementById('editFolderForm').style.display = 'block';
-        
-        document.getElementById('editFolderNameDisplay').innerText = folderName;
-        document.getElementById('editFolderName').value = folderName;
-
-        const currentViewers = viewersStr.split(',');
-        const currentUploaders = uploadersStr.split(',');
-
-        const viewersDiv = document.getElementById('editFolderViewers');
-        const uploadersDiv = document.getElementById('editFolderUploaders');
-        
-        let vHtml = `<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" ${currentViewers.includes('All') ? 'checked' : ''}> All Employees</label>`;
-        let uHtml = `<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" ${currentUploaders.includes('All') ? 'checked' : ''}> All Employees</label>`;
-        
-        users.forEach(u => {
-            if (u.role !== 'admin') {
-                vHtml += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}" ${currentViewers.includes(u.name) ? 'checked' : ''}> ${u.name}</label>`;
-                uHtml += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}" ${currentUploaders.includes(u.name) ? 'checked' : ''}> ${u.name}</label>`;
-            }
-        });
-
-        viewersDiv.innerHTML = vHtml;
-        uploadersDiv.innerHTML = uHtml;
-    },
-
-    async saveEditedDriveFolder() {
-        const name = document.getElementById('editFolderName').value;
-        const viewers = Array.from(document.querySelectorAll('#editFolderViewers input:checked')).map(cb => cb.value);
-        const uploaders = Array.from(document.querySelectorAll('#editFolderUploaders input:checked')).map(cb => cb.value);
-
-        try {
-            await fetch('http://192.168.0.136:3000/edit-folder', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, viewers, uploaders })
-            });
-            alert("Folder Permissions Updated!");
-            document.getElementById('editFolderForm').style.display = 'none';
-            this.renderDrive();
-        } catch (e) {
-            console.error(e); alert("Failed to update folder.");
-        }
-    },
-
-    async deleteDriveFolder(folderName) {
-        if(!confirm(`WARNING: Are you sure you want to completely delete "${folderName}" and ALL files inside it? This cannot be undone.`)) return;
-
-        try {
-            await fetch(`http://192.168.0.136:3000/delete-folder/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
-            alert("Folder deleted successfully.");
-            this.renderDrive();
-        } catch (e) {
-            console.error(e); alert("Failed to delete folder.");
+            console.error(e); alert("Failed to create folder.");
         }
     },
 
@@ -1755,51 +1705,62 @@ const TaskTracker = {
         foldersList.innerHTML = "<p style='grid-column: 1/-1; color: white;'>Loading folders...</p>";
 
         try {
-            const res = await fetch(`http://192.168.0.136:3000/folders?user=${encodeURIComponent(user.name)}&role=${user.role}`);
-            const folders = await res.json();
-            
+            const snap = await getDocs(collection(db, "drive_folders"));
             foldersList.innerHTML = "";
-            if (folders.length === 0) {
-                foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#94a3b8;'>No folders have been shared with you.</p>";
-                return;
-            }
+            let hasFolders = false;
 
-            folders.forEach(folder => {
+            snap.forEach(docSnap => {
+                const folder = docSnap.data();
+                const docId = docSnap.id;
+
+                const canView = user.role === "admin" || folder.viewers.includes("All") || folder.viewers.includes(user.name);
                 const canUpload = user.role === "admin" || folder.uploaders.includes("All") || folder.uploaders.includes(user.name);
-                
-                // Admin Controls (Edit & Delete)
-                let adminControls = '';
-                if (user.role === "admin") {
-                    adminControls = `
-                        <div style="margin-top: 15px; display:flex; gap:5px; justify-content:center;">
-                            <button class="action-btn edit-btn" onclick="event.stopPropagation(); TaskTracker.openEditFolder('${folder.name.replace(/'/g, "\\'")}', '${folder.viewers.join(',')}', '${folder.uploaders.join(',')}')">Edit</button>
-                            <button class="action-btn delete-btn" onclick="event.stopPropagation(); TaskTracker.deleteDriveFolder('${folder.name.replace(/'/g, "\\'")}')">Delete</button>
+
+                if (canView) {
+                    hasFolders = true;
+                    let adminControls = '';
+                    if (user.role === "admin") {
+                        adminControls = `
+                            <div style="margin-top: 15px; display:flex; gap:5px; justify-content:center;">
+                                <button class="action-btn delete-btn" onclick="event.stopPropagation(); TaskTracker.deleteDriveFolder('${docId}', '${folder.name.replace(/'/g, "\\'")}')">Delete</button>
+                            </div>
+                        `;
+                    }
+
+                    foldersList.innerHTML += `
+                        <div class="card" style="cursor:pointer; text-align:center; padding: 25px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; background: rgba(0,0,0,0.2);" 
+                             onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'"
+                             onclick="TaskTracker.openDriveFolder('${folder.name.replace(/'/g, "\\'")}', ${canUpload})">
+                            <i class="fa-solid fa-folder-closed" style="font-size: 50px; color: #8b5cf6; margin-bottom: 15px;"></i>
+                            <h4 style="color: white; margin-bottom: 10px; font-size: 16px;">${folder.name}</h4>
+                            <span style="font-size:11px; background: ${canUpload ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color: ${canUpload ? '#34d399' : '#f87171'}; padding: 4px 8px; border-radius: 6px; font-weight: bold;">
+                                ${canUpload ? '<i class="fa-solid fa-upload"></i> Can Upload' : '<i class="fa-solid fa-eye"></i> View Only'}
+                            </span>
+                            ${adminControls}
                         </div>
                     `;
                 }
-
-                foldersList.innerHTML += `
-                    <div class="card" style="cursor:pointer; text-align:center; padding: 25px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; background: rgba(0,0,0,0.2);" 
-                         onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'"
-                         onclick="TaskTracker.openDriveFolder('${folder.name.replace(/'/g, "\\'")}', ${canUpload})">
-                        <i class="fa-solid fa-folder-closed" style="font-size: 50px; color: #8b5cf6; margin-bottom: 15px;"></i>
-                        <h4 style="color: white; margin-bottom: 10px; font-size: 16px;">${folder.name}</h4>
-                        <span style="font-size:11px; background: ${canUpload ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color: ${canUpload ? '#34d399' : '#f87171'}; padding: 4px 8px; border-radius: 6px; font-weight: bold;">
-                            ${canUpload ? '<i class="fa-solid fa-upload"></i> Can Upload' : '<i class="fa-solid fa-eye"></i> View Only'}
-                        </span>
-                        ${adminControls}
-                    </div>
-                `;
             });
+
+            if (!hasFolders) foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#94a3b8;'>No folders have been shared with you.</p>";
         } catch (e) { 
-            foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#ef4444;'>Failed to connect to Local D: Drive Server.</p>";
+            foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#ef4444;'>Failed to load folders from Firebase.</p>";
         }
+    },
+
+    async deleteDriveFolder(docId, folderName) {
+        if(!confirm(`WARNING: Completely delete "${folderName}" and all contents?`)) return;
+        try {
+            await deleteDoc(doc(db, "drive_folders", docId));
+            await fetch(`http://192.168.0.136:3000/delete-folder/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
+            alert("Folder deleted.");
+            this.renderDrive();
+        } catch (e) { console.error(e); }
     },
 
     async createSubFolder() {
         const subFolderName = prompt("Enter new sub-folder name:");
         if (!subFolderName) return;
-        if (subFolderName.includes('/') || subFolderName.includes('\\')) return alert('Invalid characters in folder name.');
 
         try {
             await fetch('http://192.168.0.136:3000/create-subfolder', {
@@ -1807,20 +1768,18 @@ const TaskTracker = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
             });
-            this.openDriveFolder(this.currentDriveFolderName, true); // Refresh current view
-        } catch (e) {
-            console.error(e); alert("Failed to create subfolder.");
-        }
+            this.openDriveFolder(this.currentDriveFolderName, true);
+        } catch (e) { alert("Failed to create subfolder."); }
     },
 
     goBackFolder() {
         const parts = this.currentDriveFolderName.split('/');
         if (parts.length > 1) {
-            parts.pop(); // Remove current folder to go up one level
+            parts.pop();
             const canUpload = document.getElementById("folderUploadSection").style.display === "flex";
             this.openDriveFolder(parts.join('/'), canUpload);
         } else {
-            this.renderDrive(); // Go back to root menu
+            this.renderDrive();
         }
     },
 
@@ -1833,9 +1792,6 @@ const TaskTracker = {
         const backBtn = document.getElementById("driveBackButton");
         if(backBtn) backBtn.onclick = () => this.goBackFolder();
 
-        const editForm = document.getElementById('editFolderForm');
-        if (editForm) editForm.style.display = 'none';
-        
         document.getElementById("folderUploadSection").style.display = canUpload ? "flex" : "none";
 
         const filesList = document.getElementById("driveFilesList");
@@ -1851,31 +1807,17 @@ const TaskTracker = {
                 return;
             }
 
-            // Sort so folders appear at the top of the list
-            files.sort((a, b) => {
-                if (a.endsWith('/') && !b.endsWith('/')) return -1;
-                if (!a.endsWith('/') && b.endsWith('/')) return 1;
-                return a.localeCompare(b);
-            });
-
             files.forEach(file => {
                 const isFolder = file.endsWith('/');
                 const displayName = isFolder ? file.slice(0, -1) : file;
                 const icon = isFolder ? 'fa-folder' : 'fa-file-lines';
                 
-                let actionsHTML = '';
-                if (isFolder) {
-                    actionsHTML = `<button class="action-btn" style="background:#f59e0b;" onclick="TaskTracker.openDriveFolder('${folderName}/${displayName}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open Folder</button>`;
-                } else {
-                    actionsHTML = `
-                        <a href="http://192.168.0.136:3000/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
-                            <i class="fa-solid fa-eye"></i> View
-                        </a>
-                        <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
-                            <i class="fa-solid fa-download"></i> Download
-                        </a>
+                let actionsHTML = isFolder 
+                    ? `<button class="action-btn" style="background:#f59e0b;" onclick="TaskTracker.openDriveFolder('${folderName}/${displayName}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open</button>`
+                    : `
+                        <a href="http://192.168.0.136:3000/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
+                        <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
                     `;
-                }
 
                 filesList.innerHTML += `
                     <tr>
@@ -1895,7 +1837,6 @@ const TaskTracker = {
     async uploadToCurrentFolder(type) {
         const inputId = type === 'folder' ? 'driveFolderInput' : 'driveFileInput';
         const fileInput = document.getElementById(inputId);
-        
         if (!fileInput || fileInput.files.length === 0) return alert(`Please select a ${type} to upload.`);
         
         const uploadBtn = event.currentTarget;
@@ -1904,7 +1845,6 @@ const TaskTracker = {
         uploadBtn.disabled = true;
 
         const formData = new FormData();
-        
         for (let i = 0; i < fileInput.files.length; i++) {
             let file = fileInput.files[i];
             let relativePath = file.webkitRelativePath || file.name;
@@ -1913,14 +1853,13 @@ const TaskTracker = {
 
         try {
             await fetch(`http://192.168.0.136:3000/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
-                method: 'POST', 
-                body: formData 
+                method: 'POST', body: formData 
             });
-            alert(`${type === 'folder' ? 'Folder' : 'File(s)'} saved to D: Drive successfully!`);
+            alert('Uploaded successfully!');
             fileInput.value = '';
             this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
-            alert('Upload failed. Host server might be unreachable.');
+            alert('Upload failed.');
         } finally {
             uploadBtn.innerHTML = originalText;
             uploadBtn.disabled = false;
