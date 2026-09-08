@@ -1637,17 +1637,21 @@ const TaskTracker = {
 
     toggleCreateFolderForm() {
         const form = document.getElementById('createFolderForm');
-        if (form.style.display === 'none') {
+        if (!form) return;
+        
+        if (form.style.display === 'none' || !form.style.display) {
             form.style.display = 'block';
             const viewers = document.getElementById('folderViewers');
             const uploaders = document.getElementById('folderUploaders');
             
-            let html = '<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" checked> All Employees</label>';
-            users.forEach(u => {
-                if (u.role !== 'admin') {
-                    html += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
-                }
-            });
+            let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
+            if (typeof users !== 'undefined') {
+                users.forEach(u => {
+                    if (u.role !== 'admin') {
+                        html += `<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
+                    }
+                });
+            }
             
             if(viewers) viewers.innerHTML = html;
             if(uploaders) uploaders.innerHTML = html;
