@@ -1621,10 +1621,9 @@ const TaskTracker = {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Rejected' });
             this.renderAdminLeaves();
         } catch (error) { console.error(error); }
-    }
-},
+    }, // <-- Notice: Just a comma here!
 
-// --- NEW FILE SHARING LOGIC ---
+    // --- NEW FILE SHARING LOGIC ---
     async uploadSharedFile() {
         const fileInput = document.getElementById('sharedFileInput');
         if (!fileInput || !fileInput.files[0]) return alert('Please select a file first.');
@@ -1666,6 +1665,8 @@ const TaskTracker = {
             fileList.innerHTML = '<li style="color: #ef4444; padding: 10px 0;">Could not connect to the local file server.</li>';
         }
     }
+
+}; // <--- THIS is where the TaskTracker object actually closes!
 
 window.TaskTracker = TaskTracker;
 
