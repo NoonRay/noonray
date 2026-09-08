@@ -1645,16 +1645,15 @@ const TaskTracker = {
             const uploaders = document.getElementById('folderUploaders');
             
             let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
-            if (typeof users !== 'undefined') {
-                users.forEach(u => {
-                    if (u.role !== 'admin') {
-                        html += `<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
-                    }
-                });
-            }
             
-            if(viewers) viewers.innerHTML = html;
-            if(uploaders) uploaders.innerHTML = html;
+            users.forEach(u => {
+                if (u.role !== 'admin') {
+                    html += `<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
+                }
+            });
+            
+            if (viewers) viewers.innerHTML = html;
+            if (uploaders) uploaders.innerHTML = html;
         } else {
             form.style.display = 'none';
         }
