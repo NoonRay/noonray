@@ -86,15 +86,15 @@
         </div>
 
         <div class="date-row">
-            <div>
-                <label class="label">Start Date</label>
-                <input type="date" class="input" id="startDate">
-            </div>
-            <div>
-                <label class="label">End Date</label>
-                <input type="date" class="input" id="endDate">
-            </div>
-        </div>
+    <div>
+        <label class="label">Who can VIEW files?</label>
+        <div id="folderViewers" style="height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+    <div>
+        <label class="label">Who can UPLOAD files?</label>
+        <div id="folderUploaders" style="height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+</div>
 
         <div style="margin-top:20px; display:flex; gap:10px;">
             <button class="btn full-btn" id="submitTaskBtn" onclick="TaskTracker.assignTask()">
