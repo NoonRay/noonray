@@ -86,15 +86,15 @@
         </div>
 
         <div class="date-row">
-    <div>
-        <label class="label">Who can VIEW files?</label>
-        <div id="folderViewers" style="height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
-    <div>
-        <label class="label">Who can UPLOAD files?</label>
-        <div id="folderUploaders" style="height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
-</div>
+            <div>
+                <label class="label">Start Date</label>
+                <input type="date" class="input" id="startDate">
+            </div>
+            <div>
+                <label class="label">End Date</label>
+                <input type="date" class="input" id="endDate">
+            </div>
+        </div>
 
         <div style="margin-top:20px; display:flex; gap:10px;">
             <button class="btn full-btn" id="submitTaskBtn" onclick="TaskTracker.assignTask()">
@@ -316,14 +316,15 @@
         <h4 style="margin-bottom: 15px;">Create Secure Folder</h4>
         <input type="text" id="newFolderName" class="input" placeholder="e.g., HR Documents, Project Alpha..." style="margin-bottom: 15px;">
         
+        <!-- FIXED: Proper div tags for checkboxes -->
         <div class="date-row">
             <div>
-                <label class="label">Who can VIEW files? (Hold Ctrl/Cmd to select multiple)</label>
-                <select id="folderViewers" class="input" multiple style="height: 120px;"></select>
+                <label class="label">Who can VIEW files?</label>
+                <div id="folderViewers" style="height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
             <div>
-                <label class="label">Who can UPLOAD files? (Hold Ctrl/Cmd to select multiple)</label>
-                <select id="folderUploaders" class="input" multiple style="height: 120px;"></select>
+                <label class="label">Who can UPLOAD files?</label>
+                <div id="folderUploaders" style="height: 140px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
 
@@ -337,37 +338,37 @@
     <div id="driveFoldersList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;"></div>
 
     <!-- Files Inside Folder -->
-        <div id="driveFilesContainer" style="display: none;" class="card">
-            <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 20px;">
-                <div>
-                    <button class="btn cancel-btn" style="margin-right: 15px;" id="driveBackButton"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <strong id="currentFolderName" style="font-size: 18px; color: #60a5fa;">Folder Name</strong>
+    <div id="driveFilesContainer" style="display: none;" class="card">
+        <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <button class="btn cancel-btn" style="margin-right: 15px;" id="driveBackButton"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                <strong id="currentFolderName" style="font-size: 18px; color: #60a5fa;">Folder Name</strong>
+            </div>
+            <div id="folderUploadSection" style="display:none; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <input type="file" id="driveFileInput" class="input" style="padding: 6px; width: 180px;" multiple>
+                    <button class="btn" style="background:#10b981; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder('file')">
+                        <i class="fa-solid fa-file-arrow-up"></i> File(s)
+                    </button>
                 </div>
-                <div id="folderUploadSection" style="display:none; gap: 15px; align-items: center; flex-wrap: wrap;">
-                    <div style="display: flex; gap: 5px; align-items: center;">
-                        <input type="file" id="driveFileInput" class="input" style="padding: 6px; width: 180px;" multiple>
-                        <button class="btn" style="background:#10b981; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder('file')">
-                            <i class="fa-solid fa-file-arrow-up"></i> File(s)
-                        </button>
-                    </div>
-                    <div style="display: flex; gap: 5px; align-items: center; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 15px;">
-                        <input type="file" id="driveFolderInput" class="input" style="padding: 6px; width: 180px;" webkitdirectory directory multiple>
-                        <button class="btn" style="background:#0ea5e9; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder('folder')">
-                            <i class="fa-solid fa-folder-arrow-up"></i> Folder
-                        </button>
-                    </div>
-                    <div style="display: flex; gap: 5px; align-items: center; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 15px;">
-                        <button class="btn" style="background:#f59e0b; white-space: nowrap;" onclick="TaskTracker.createSubFolder()">
-                            <i class="fa-solid fa-folder-plus"></i> New Sub-Folder
-                        </button>
-                    </div>
+                <div style="display: flex; gap: 5px; align-items: center; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 15px;">
+                    <input type="file" id="driveFolderInput" class="input" style="padding: 6px; width: 180px;" webkitdirectory directory multiple>
+                    <button class="btn" style="background:#0ea5e9; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder('folder')">
+                        <i class="fa-solid fa-folder-arrow-up"></i> Folder
+                    </button>
+                </div>
+                <div style="display: flex; gap: 5px; align-items: center; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 15px;">
+                    <button class="btn" style="background:#f59e0b; white-space: nowrap;" onclick="TaskTracker.createSubFolder()">
+                        <i class="fa-solid fa-folder-plus"></i> New Sub-Folder
+                    </button>
                 </div>
             </div>
-            <table class="task-table">
-                <thead><tr><th>Name</th><th style="width: 250px;">Actions</th></tr></thead>
-                <tbody id="driveFilesList"></tbody>
-            </table>
         </div>
+        <table class="task-table">
+            <thead><tr><th>Name</th><th style="width: 250px;">Actions</th></tr></thead>
+            <tbody id="driveFilesList"></tbody>
+        </table>
+    </div>
 </div>
 
 </main>
