@@ -1953,4 +1953,4 @@ window.onload = async () => {
     }
 };
 
-There is a file you can reference named "image_03ff06.png". Refer to this file by its name verbatim.
+//There is a file you can reference named "image_03ff06.png". Refer to this file by its name verbatim.
