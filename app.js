@@ -1632,7 +1632,7 @@ const TaskTracker = {
         formData.append('file', fileInput.files[0]);
 
         try {
-            await fetch('http://localhost:3000/upload', { method: 'POST', body: formData });
+            await fetch('http://192.168.0.136:3000/upload', { method: 'POST', body: formData });
             alert('File uploaded to D: Drive successfully!');
             fileInput.value = '';
             this.loadSharedFiles(); // Refresh the list
@@ -1646,7 +1646,7 @@ const TaskTracker = {
         if (!fileList) return;
         
         try {
-            const res = await fetch('http://localhost:3000/files');
+            const res = await fetch('http://192.168.0.136:3000/files');
             const files = await res.json();
             
             if (files.length === 0) {
@@ -1658,7 +1658,7 @@ const TaskTracker = {
                 const originalName = f.substring(f.indexOf('-') + 1); // Remove the timestamp for display
                 return `<li style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center;">
                     <i class="fa-solid fa-file" style="color: #94a3b8; margin-right: 10px;"></i>
-                    <a href="http://localhost:3000/download/${f}" target="_blank" style="color: #60a5fa; text-decoration: none;">${originalName}</a>
+                    <a href="http://192.168.0.136:3000/download/${f}" target="_blank" style="color: #60a5fa; text-decoration: none;">${originalName}</a>
                 </li>`;
             }).join('');
         } catch (e) {
