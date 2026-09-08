@@ -1701,6 +1701,8 @@ window.onload = async () => {
     loadHolidays();
     populateEmployeeDropdown();
 
+    TaskTracker.loadSharedFiles();
+    
     if (currentPage === "index.html" || currentPage === "") {
         triggerFirecrackers();
     }
