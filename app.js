@@ -193,22 +193,11 @@ const users = [
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
     { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee",joiningDate: "2026-06-23"},
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
-    //{ email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "employee" },
-    //{ email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
-    //{ email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
-    //{ email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
-    //{ email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "employee" },
-    //{ email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
     { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "employee", joiningDate: "2026-06-10" },
     { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "employee", joiningDate: "2026-06-10" },
-    //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
-    //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
-    //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
-    //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
-    //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
     { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" }
 ];
 
@@ -1691,11 +1680,22 @@ const TaskTracker = {
 
         try {
             // 1. Create physical folder on D: Drive
-            await fetch('http://192.168.0.136:3000/create-folder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            });
+            try {
+                const response = await fetch('http://192.168.0.136:3000/create-folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Server responded with an error.");
+                }
+            } catch (networkError) {
+                console.error("Network Error:", networkError);
+                alert("NETWORK ERROR: Your browser is blocking the connection to the Node.js server. If you are on GitHub Pages (https://), you cannot connect to a local server (http://). Please open the admin.html file directly from your computer to use the Drive feature.");
+                if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
+                return; // Stop execution here if node server fails
+            }
 
             // 2. Save permissions to Firebase
             await addDoc(collection(db, "drive_folders"), {
@@ -1710,7 +1710,7 @@ const TaskTracker = {
             this.renderDrive();
         } catch (e) {
             console.error(e); 
-            alert("Failed to create folder. Is your Node.js server running?");
+            alert("Failed to save to Firebase.");
         } finally {
             if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
         }
@@ -1769,64 +1769,6 @@ const TaskTracker = {
             if (!hasFolders) foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#94a3b8;'>No folders have been shared with you.</p>";
         } catch (e) { 
             foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#ef4444;'>Failed to load folders.</p>";
-        }
-    },
-
-    async renderDrive() {
-        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
-        const foldersList = document.getElementById("driveFoldersList");
-        const filesContainer = document.getElementById("driveFilesContainer");
-        const createBtn = document.getElementById("createFolderBtn");
-        
-        if(!foldersList || !filesContainer) return;
-
-        filesContainer.style.display = "none";
-        foldersList.style.display = "grid";
-        if (user.role === "admin" && createBtn) createBtn.style.display = "block";
-
-        foldersList.innerHTML = "<p style='grid-column: 1/-1; color: white;'>Loading folders...</p>";
-
-        try {
-            const snap = await getDocs(collection(db, "drive_folders"));
-            foldersList.innerHTML = "";
-            let hasFolders = false;
-
-            snap.forEach(docSnap => {
-                const folder = docSnap.data();
-                const docId = docSnap.id;
-
-                const canView = user.role === "admin" || folder.viewers.includes("All") || folder.viewers.includes(user.name);
-                const canUpload = user.role === "admin" || folder.uploaders.includes("All") || folder.uploaders.includes(user.name);
-
-                if (canView) {
-                    hasFolders = true;
-                    let adminControls = '';
-                    if (user.role === "admin") {
-                        adminControls = `
-                            <div style="margin-top: 15px; display:flex; gap:5px; justify-content:center;">
-                                <button class="action-btn delete-btn" onclick="event.stopPropagation(); TaskTracker.deleteDriveFolder('${docId}', '${folder.name.replace(/'/g, "\\'")}')">Delete</button>
-                            </div>
-                        `;
-                    }
-
-                    foldersList.innerHTML += `
-                        <div class="card" style="cursor:pointer; text-align:center; padding: 25px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; background: rgba(0,0,0,0.2);" 
-                             onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'"
-                             onclick="TaskTracker.openDriveFolder('${folder.name.replace(/'/g, "\\'")}', ${canUpload})">
-                            <i class="fa-solid fa-folder-closed" style="font-size: 50px; color: #8b5cf6; margin-bottom: 15px;"></i>
-                            <h4 style="color: white; margin-bottom: 10px; font-size: 16px;">${folder.name}</h4>
-                            <span style="font-size:11px; background: ${canUpload ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color: ${canUpload ? '#34d399' : '#f87171'}; padding: 4px 8px; border-radius: 6px; font-weight: bold;">
-                                ${canUpload ? '<i class="fa-solid fa-upload"></i> Can Upload' : '<i class="fa-solid fa-eye"></i> View Only'}
-                            </span>
-                            ${adminControls}
-                        </div>
-                    `;
-                }
-            });
-
-            if (!hasFolders) foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#94a3b8;'>No folders have been shared with you.</p>";
-        } catch (e) { 
-            foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#ef4444;'>Failed to load folders from Firebase.</p>";
         }
     },
 
@@ -2010,3 +1952,5 @@ window.onload = async () => {
         TaskTracker.switchEmployeeView(savedView);
     }
 };
+
+There is a file you can reference named "image_03ff06.png". Refer to this file by its name verbatim.
