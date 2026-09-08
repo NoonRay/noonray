@@ -1644,10 +1644,28 @@ const TaskTracker = {
             const viewers = document.getElementById('folderViewers');
             const uploaders = document.getElementById('folderUploaders');
             
+            // Hardcoded fallback list matching your exact user array so it never fails
+            const employeeList = [
+                { name: "Hari Prasath S", role: "employee" },
+                { name: "CB Lathieswar Reddy", role: "employee" },
+                { name: "Athivel A", role: "employee" },
+                { name: "Ahamad shareef Sheik", role: "employee" },
+                { name: "Haris E", role: "employee" },
+                { name: "Pratik Balbudhe", role: "employee" },
+                { name: "Tammisetti Venkateswararao", role: "employee" },
+                { name: "Murali karthik Kuchan", role: "intern" },
+                { name: "Rushil Kumar M", role: "employee" },
+                { name: "Aravindhanathan Gurumoorthy", role: "employee" },
+                { name: "Premkumar G", role: "employee" },
+                { name: "Vigneshwaran K", role: "employee" },
+                { name: "Sakthi Prasanna S", role: "employee" },
+                { name: "Devshree Avinash Vengurlekar", role: "intern" }
+            ];
+
             let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
             
-            users.forEach(u => {
-                if (u.role !== 'admin') {
+            employeeList.forEach(u => {
+                if (u.role && u.role !== 'admin') {
                     html += `<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
                 }
             });
