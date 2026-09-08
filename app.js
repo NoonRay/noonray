@@ -1680,22 +1680,11 @@ const TaskTracker = {
 
         try {
             // 1. Create physical folder on D: Drive
-            try {
-                const response = await fetch('http://192.168.0.136:3000/create-folder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
-                });
-                
-                if (!response.ok) {
-                    throw new Error("Server responded with an error.");
-                }
-            } catch (networkError) {
-                console.error("Network Error:", networkError);
-                alert("NETWORK ERROR: Your browser is blocking the connection to the Node.js server. If you are on GitHub Pages (https://), you cannot connect to a local server (http://). Please open the admin.html file directly from your computer to use the Drive feature.");
-                if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
-                return; // Stop execution here if node server fails
-            }
+            await fetch('http://192.168.0.136:3000/create-folder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
 
             // 2. Save permissions to Firebase
             await addDoc(collection(db, "drive_folders"), {
@@ -1710,7 +1699,7 @@ const TaskTracker = {
             this.renderDrive();
         } catch (e) {
             console.error(e); 
-            alert("Failed to save to Firebase.");
+            alert("Failed to create folder. Is your Node.js server running?");
         } finally {
             if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
         }
@@ -1952,5 +1941,4 @@ window.onload = async () => {
         TaskTracker.switchEmployeeView(savedView);
     }
 };
-
-//There is a file you can reference named "image_03ff06.png". Refer to this file by its name verbatim.
+now i can click submit bt if i click there comes a error "failed to crate folder . is ur node js rining  " but as you see it is running
