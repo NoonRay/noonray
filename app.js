@@ -1796,12 +1796,43 @@ const TaskTracker = {
         }
     },
 
+    async createSubFolder() {
+        const subFolderName = prompt("Enter new sub-folder name:");
+        if (!subFolderName) return;
+        if (subFolderName.includes('/') || subFolderName.includes('\\')) return alert('Invalid characters in folder name.');
+
+        try {
+            await fetch('http://192.168.0.136:3000/create-subfolder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
+            });
+            this.openDriveFolder(this.currentDriveFolderName, true); // Refresh current view
+        } catch (e) {
+            console.error(e); alert("Failed to create subfolder.");
+        }
+    },
+
+    goBackFolder() {
+        const parts = this.currentDriveFolderName.split('/');
+        if (parts.length > 1) {
+            parts.pop(); // Remove current folder to go up one level
+            const canUpload = document.getElementById("folderUploadSection").style.display === "flex";
+            this.openDriveFolder(parts.join('/'), canUpload);
+        } else {
+            this.renderDrive(); // Go back to root menu
+        }
+    },
+
     async openDriveFolder(folderName, canUpload) {
         this.currentDriveFolderName = folderName;
         document.getElementById("driveFoldersList").style.display = "none";
         document.getElementById("driveFilesContainer").style.display = "block";
         document.getElementById("currentFolderName").innerText = folderName;
         
+        const backBtn = document.getElementById("driveBackButton");
+        if(backBtn) backBtn.onclick = () => this.goBackFolder();
+
         const editForm = document.getElementById('editFolderForm');
         if (editForm) editForm.style.display = 'none';
         
@@ -1820,22 +1851,39 @@ const TaskTracker = {
                 return;
             }
 
+            // Sort so folders appear at the top of the list
+            files.sort((a, b) => {
+                if (a.endsWith('/') && !b.endsWith('/')) return -1;
+                if (!a.endsWith('/') && b.endsWith('/')) return 1;
+                return a.localeCompare(b);
+            });
+
             files.forEach(file => {
-                // Change the icon if it is inside a nested sub-folder
-                const icon = file.includes('/') ? 'fa-folder-tree' : 'fa-file-lines';
+                const isFolder = file.endsWith('/');
+                const displayName = isFolder ? file.slice(0, -1) : file;
+                const icon = isFolder ? 'fa-folder' : 'fa-file-lines';
                 
-                // Use Query Parameters for flawless routing
+                let actionsHTML = '';
+                if (isFolder) {
+                    actionsHTML = `<button class="action-btn" style="background:#f59e0b;" onclick="TaskTracker.openDriveFolder('${folderName}/${displayName}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open Folder</button>`;
+                } else {
+                    actionsHTML = `
+                        <a href="http://192.168.0.136:3000/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
+                            <i class="fa-solid fa-eye"></i> View
+                        </a>
+                        <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
+                            <i class="fa-solid fa-download"></i> Download
+                        </a>
+                    `;
+                }
+
                 filesList.innerHTML += `
                     <tr>
-                        <td><i class="fa-solid ${icon}" style="color:#94a3b8; margin-right:8px;"></i> ${file}</td>
-                        <td>
-                            <a href="http://192.168.0.136:3000/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
-                                <i class="fa-solid fa-eye"></i> View
-                            </a>
-                            <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
-                                <i class="fa-solid fa-download"></i> Download
-                            </a>
+                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${folderName}/${displayName}', ${canUpload})"` : ''}>
+                            <i class="fa-solid ${icon}" style="color:${isFolder ? '#f59e0b' : '#94a3b8'}; margin-right:8px;"></i> 
+                            <strong style="${!isFolder ? 'color:#e2e8f0;' : ''}">${displayName}</strong>
                         </td>
+                        <td>${actionsHTML}</td>
                     </tr>
                 `;
             });
@@ -1845,7 +1893,6 @@ const TaskTracker = {
     },
 
     async uploadToCurrentFolder(type) {
-        // Support grabbing from either the File input or the Folder input
         const inputId = type === 'folder' ? 'driveFolderInput' : 'driveFileInput';
         const fileInput = document.getElementById(inputId);
         
@@ -1858,10 +1905,8 @@ const TaskTracker = {
 
         const formData = new FormData();
         
-        // Loop through everything selected and replace slashes with @@@
         for (let i = 0; i < fileInput.files.length; i++) {
             let file = fileInput.files[i];
-            // webkitRelativePath grabs the whole folder tree!
             let relativePath = file.webkitRelativePath || file.name;
             formData.append('files', file, relativePath.replace(/\//g, '@@@'));
         }
