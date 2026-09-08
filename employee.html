@@ -168,13 +168,23 @@
                     <button class="btn cancel-btn" style="margin-right: 15px;" onclick="TaskTracker.renderDrive()"><i class="fa-solid fa-arrow-left"></i> Back</button>
                     <strong id="currentFolderName" style="font-size: 18px; color: #60a5fa;">Folder Name</strong>
                 </div>
-                <div id="folderUploadSection" style="display:none; gap: 10px;">
-                    <input type="file" id="driveFileInput" class="input" style="padding: 10px;">
-                    <button class="btn" style="background:#10b981; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+                <div id="folderUploadSection" style="display:none; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <input type="file" id="driveFileInput" class="input" style="padding: 6px; width: 180px;" multiple>
+                        <button class="btn" style="background:#10b981; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder('file')">
+                            <i class="fa-solid fa-file-arrow-up"></i> Upload File
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 5px; align-items: center; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 15px;">
+                        <input type="file" id="driveFolderInput" class="input" style="padding: 6px; width: 180px;" webkitdirectory directory multiple>
+                        <button class="btn" style="background:#0ea5e9; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder('folder')">
+                            <i class="fa-solid fa-folder-arrow-up"></i> Upload Folder
+                        </button>
+                    </div>
                 </div>
             </div>
             <table class="task-table">
-                <thead><tr><th>File Name</th><th>Action</th></tr></thead>
+                <thead><tr><th>File Name</th><th style="width: 250px;">Actions</th></tr></thead>
                 <tbody id="driveFilesList"></tbody>
             </table>
         </div>
