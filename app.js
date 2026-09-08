@@ -1637,9 +1637,6 @@ const TaskTracker = {
 
     toggleCreateFolderForm() {
         const form = document.getElementById('createFolderForm');
-        const editForm = document.getElementById('editFolderForm');
-        if (editForm) editForm.style.display = 'none';
-
         if (form.style.display === 'none') {
             form.style.display = 'block';
             const viewers = document.getElementById('folderViewers');
@@ -1647,7 +1644,9 @@ const TaskTracker = {
             
             let html = '<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" checked> All Employees</label>';
             users.forEach(u => {
-                if (u.role !== 'admin') html += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
+                if (u.role !== 'admin') {
+                    html += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
+                }
             });
             
             if(viewers) viewers.innerHTML = html;
@@ -1657,36 +1656,59 @@ const TaskTracker = {
         }
     },
 
-    async saveDriveFolder() {
-        const name = document.getElementById('newFolderName').value.trim();
-        if (!name) return alert('Folder name required.');
-        if (name.includes('/') || name.includes('\\')) return alert('Invalid characters in folder name.');
-
-        const viewers = Array.from(document.querySelectorAll('#folderViewers input:checked')).map(cb => cb.value);
-        const uploaders = Array.from(document.querySelectorAll('#folderUploaders input:checked')).map(cb => cb.value);
+    async renderDrive() {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+        const foldersList = document.getElementById("driveFoldersList");
+        const filesContainer = document.getElementById("driveFilesContainer");
+        const createBtn = document.getElementById("createFolderBtn");
+        
+        if(!foldersList || !filesContainer) return;
+
+        filesContainer.style.display = "none";
+        foldersList.style.display = "grid";
+        if (user.role === "admin" && createBtn) createBtn.style.display = "block";
+
+        foldersList.innerHTML = "<p style='grid-column: 1/-1; color: white;'>Loading folders...</p>";
 
         try {
-            // 1. Create physical folder on D: Drive
-            await fetch('http://192.168.0.136:3000/create-folder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
+            // 1. Get folder permissions from Firebase
+            const snap = await getDocs(collection(db, "drive_folders"));
+            foldersList.innerHTML = "";
+            let hasFolders = false;
+
+            snap.forEach(docSnap => {
+                const folder = docSnap.data();
+                const docId = docSnap.id;
+
+                const canView = user.role === "admin" || folder.viewers.includes("All") || folder.viewers.includes(user.name);
+                const canUpload = user.role === "admin" || folder.uploaders.includes("All") || folder.uploaders.includes(user.name);
+
+                if (canView) {
+                    hasFolders = true;
+                    let adminControls = user.role === "admin" ? `
+                        <div style="margin-top: 15px; display:flex; gap:5px; justify-content:center;">
+                            <button class="action-btn delete-btn" onclick="event.stopPropagation(); TaskTracker.deleteDriveFolder('${docId}', '${folder.name.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    ` : '';
+
+                    foldersList.innerHTML += `
+                        <div class="card" style="cursor:pointer; text-align:center; padding: 25px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; background: rgba(0,0,0,0.2);" 
+                             onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'"
+                             onclick="TaskTracker.openDriveFolder('${folder.name.replace(/'/g, "\\'")}', ${canUpload})">
+                            <i class="fa-solid fa-folder-closed" style="font-size: 50px; color: #8b5cf6; margin-bottom: 15px;"></i>
+                            <h4 style="color: white; margin-bottom: 10px; font-size: 16px;">${folder.name}</h4>
+                            <span style="font-size:11px; background: ${canUpload ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color: ${canUpload ? '#34d399' : '#f87171'}; padding: 4px 8px; border-radius: 6px; font-weight: bold;">
+                                ${canUpload ? '<i class="fa-solid fa-upload"></i> Can Upload' : '<i class="fa-solid fa-eye"></i> View Only'}
+                            </span>
+                            ${adminControls}
+                        </div>
+                    `;
+                }
             });
 
-            // 2. Save permissions to Firebase so it's permanently remembered
-            await addDoc(collection(db, "drive_folders"), {
-                name, viewers, uploaders,
-                createdBy: user.name,
-                createdAt: serverTimestamp()
-            });
-
-            alert("Folder Created Successfully!");
-            document.getElementById('newFolderName').value = '';
-            this.toggleCreateFolderForm();
-            this.renderDrive();
-        } catch (e) {
-            console.error(e); alert("Failed to create folder.");
+            if (!hasFolders) foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#94a3b8;'>No folders have been shared with you.</p>";
+        } catch (e) { 
+            foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#ef4444;'>Failed to load folders.</p>";
         }
     },
 
