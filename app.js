@@ -259,7 +259,7 @@ const TaskTracker = {
             'employeeDetails': document.getElementById("adminEmployeeDetailsView"),
             'attendance': document.getElementById("adminAttendanceView"),
             'leaves': document.getElementById("adminLeavesView"),
-            'drive': document.getElementById("adminDriveView") // Added drive view
+            'drive': document.getElementById("adminDriveView")
         };
         const links = document.querySelectorAll(".sidebar a");
 
@@ -1323,19 +1323,19 @@ const TaskTracker = {
         sessionStorage.setItem("currentEmployeeView", view);
         const dashboard = document.getElementById("employeeDashboardView");
         const leaveForm = document.getElementById("employeeLeaveFormView");
-        const driveView = document.getElementById("employeeDriveView"); // added
+        const driveView = document.getElementById("employeeDriveView"); 
         const links = document.querySelectorAll(".sidebar a");
 
         if(dashboard) dashboard.style.display = "none";
         if(leaveForm) leaveForm.style.display = "none";
-        if(driveView) driveView.style.display = "none"; // added
+        if(driveView) driveView.style.display = "none"; 
         links.forEach(l => l.classList.remove("active"));
 
         if (view === 'leaveForm' && leaveForm) {
             leaveForm.style.display = "block";
             if(links[2]) links[2].classList.add("active"); 
             this.renderEmployeeLeaves(); 
-        } else if (view === 'drive' && driveView) { // added
+        } else if (view === 'drive' && driveView) { 
             driveView.style.display = "block";
             if(links[3]) links[3].classList.add("active");
             this.renderDrive();
@@ -1637,16 +1637,21 @@ const TaskTracker = {
 
     toggleCreateFolderForm() {
         const form = document.getElementById('createFolderForm');
+        document.getElementById('editFolderForm').style.display = 'none'; // Hide edit form if open
+
         if (form.style.display === 'none') {
             form.style.display = 'block';
             const viewers = document.getElementById('folderViewers');
             const uploaders = document.getElementById('folderUploaders');
-            let options = '<option value="All" selected>All Employees</option>';
+            
+            // Build Checkboxes instead of Select Options
+            let html = '<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" checked> All Employees</label>';
             users.forEach(u => {
-                if (u.role !== 'admin') options += `<option value="${u.name}">${u.name}</option>`;
+                if (u.role !== 'admin') html += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}"> ${u.name}</label>`;
             });
-            if(viewers) viewers.innerHTML = options;
-            if(uploaders) uploaders.innerHTML = options;
+            
+            if(viewers) viewers.innerHTML = html;
+            if(uploaders) uploaders.innerHTML = html;
         } else {
             form.style.display = 'none';
         }
@@ -1657,8 +1662,9 @@ const TaskTracker = {
         if (!name) return alert('Folder name required.');
         if (name.includes('/') || name.includes('\\')) return alert('Invalid characters in folder name.');
 
-        const viewers = Array.from(document.getElementById('folderViewers').selectedOptions).map(opt => opt.value);
-        const uploaders = Array.from(document.getElementById('folderUploaders').selectedOptions).map(opt => opt.value);
+        // Get values from checked checkboxes
+        const viewers = Array.from(document.querySelectorAll('#folderViewers input:checked')).map(cb => cb.value);
+        const uploaders = Array.from(document.querySelectorAll('#folderUploaders input:checked')).map(cb => cb.value);
         const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
 
         try {
@@ -1668,10 +1674,69 @@ const TaskTracker = {
                 body: JSON.stringify({ name, viewers, uploaders, createdBy: user.name })
             });
             alert("Folder Created on D: Drive!");
+            document.getElementById('newFolderName').value = '';
             this.toggleCreateFolderForm();
             this.renderDrive();
         } catch (e) {
             console.error(e); alert("Failed to create folder. Is the host server running?");
+        }
+    },
+
+    openEditFolder(folderName, viewersStr, uploadersStr) {
+        document.getElementById('createFolderForm').style.display = 'none'; // Hide create form
+        document.getElementById('editFolderForm').style.display = 'block';
+        
+        document.getElementById('editFolderNameDisplay').innerText = folderName;
+        document.getElementById('editFolderName').value = folderName;
+
+        const currentViewers = viewersStr.split(',');
+        const currentUploaders = uploadersStr.split(',');
+
+        const viewersDiv = document.getElementById('editFolderViewers');
+        const uploadersDiv = document.getElementById('editFolderUploaders');
+        
+        let vHtml = `<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" ${currentViewers.includes('All') ? 'checked' : ''}> All Employees</label>`;
+        let uHtml = `<label style="color:white; cursor:pointer;"><input type="checkbox" value="All" ${currentUploaders.includes('All') ? 'checked' : ''}> All Employees</label>`;
+        
+        users.forEach(u => {
+            if (u.role !== 'admin') {
+                vHtml += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}" ${currentViewers.includes(u.name) ? 'checked' : ''}> ${u.name}</label>`;
+                uHtml += `<label style="color:white; cursor:pointer;"><input type="checkbox" value="${u.name}" ${currentUploaders.includes(u.name) ? 'checked' : ''}> ${u.name}</label>`;
+            }
+        });
+
+        viewersDiv.innerHTML = vHtml;
+        uploadersDiv.innerHTML = uHtml;
+    },
+
+    async saveEditedDriveFolder() {
+        const name = document.getElementById('editFolderName').value;
+        const viewers = Array.from(document.querySelectorAll('#editFolderViewers input:checked')).map(cb => cb.value);
+        const uploaders = Array.from(document.querySelectorAll('#editFolderUploaders input:checked')).map(cb => cb.value);
+
+        try {
+            await fetch('http://192.168.0.136:3000/edit-folder', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, viewers, uploaders })
+            });
+            alert("Folder Permissions Updated!");
+            document.getElementById('editFolderForm').style.display = 'none';
+            this.renderDrive();
+        } catch (e) {
+            console.error(e); alert("Failed to update folder.");
+        }
+    },
+
+    async deleteDriveFolder(folderName) {
+        if(!confirm(`WARNING: Are you sure you want to completely delete "${folderName}" and ALL files inside it? This cannot be undone.`)) return;
+
+        try {
+            await fetch(`http://192.168.0.136:3000/delete-folder/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
+            alert("Folder deleted successfully.");
+            this.renderDrive();
+        } catch (e) {
+            console.error(e); alert("Failed to delete folder.");
         }
     },
 
@@ -1702,6 +1767,17 @@ const TaskTracker = {
             folders.forEach(folder => {
                 const canUpload = user.role === "admin" || folder.uploaders.includes("All") || folder.uploaders.includes(user.name);
                 
+                // Admin Controls (Edit & Delete)
+                let adminControls = '';
+                if (user.role === "admin") {
+                    adminControls = `
+                        <div style="margin-top: 15px; display:flex; gap:5px; justify-content:center;">
+                            <button class="action-btn edit-btn" onclick="event.stopPropagation(); TaskTracker.openEditFolder('${folder.name.replace(/'/g, "\\'")}', '${folder.viewers.join(',')}', '${folder.uploaders.join(',')}')">Edit</button>
+                            <button class="action-btn delete-btn" onclick="event.stopPropagation(); TaskTracker.deleteDriveFolder('${folder.name.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    `;
+                }
+
                 foldersList.innerHTML += `
                     <div class="card" style="cursor:pointer; text-align:center; padding: 25px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; background: rgba(0,0,0,0.2);" 
                          onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'"
@@ -1711,6 +1787,7 @@ const TaskTracker = {
                         <span style="font-size:11px; background: ${canUpload ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color: ${canUpload ? '#34d399' : '#f87171'}; padding: 4px 8px; border-radius: 6px; font-weight: bold;">
                             ${canUpload ? '<i class="fa-solid fa-upload"></i> Can Upload' : '<i class="fa-solid fa-eye"></i> View Only'}
                         </span>
+                        ${adminControls}
                     </div>
                 `;
             });
@@ -1748,14 +1825,17 @@ const TaskTracker = {
                 const icon = file.includes('/') ? 'fa-folder-tree' : 'fa-file-lines';
                 
                 // Add two distinct buttons: View (Yellow) and Download (Blue)
+                // Use a safe path encoder so subfolders don't break Express routes
+                const safeFilePath = file.split('/').map(part => encodeURIComponent(part)).join('/');
+
                 filesList.innerHTML += `
                     <tr>
                         <td><i class="fa-solid ${icon}" style="color:#94a3b8; margin-right:8px;"></i> ${file}</td>
                         <td>
-                            <a href="http://192.168.0.136:3000/view/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
+                            <a href="http://192.168.0.136:3000/view/${encodeURIComponent(folderName)}/${safeFilePath}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
                                 <i class="fa-solid fa-eye"></i> View
                             </a>
-                            <a href="http://192.168.0.136:3000/download/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
+                            <a href="http://192.168.0.136:3000/download/${encodeURIComponent(folderName)}/${safeFilePath}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
                                 <i class="fa-solid fa-download"></i> Download
                             </a>
                         </td>
