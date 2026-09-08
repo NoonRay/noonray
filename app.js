@@ -1821,21 +1821,18 @@ const TaskTracker = {
             }
 
             files.forEach(file => {
-                // Determine if it's inside a subfolder
+                // Change the icon if it is inside a nested sub-folder
                 const icon = file.includes('/') ? 'fa-folder-tree' : 'fa-file-lines';
                 
-                // Add two distinct buttons: View (Yellow) and Download (Blue)
-                // Use a safe path encoder so subfolders don't break Express routes
-                const safeFilePath = file.split('/').map(part => encodeURIComponent(part)).join('/');
-
+                // Use Query Parameters for flawless routing
                 filesList.innerHTML += `
                     <tr>
                         <td><i class="fa-solid ${icon}" style="color:#94a3b8; margin-right:8px;"></i> ${file}</td>
                         <td>
-                            <a href="http://192.168.0.136:3000/view/${encodeURIComponent(folderName)}/${safeFilePath}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
+                            <a href="http://192.168.0.136:3000/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
                                 <i class="fa-solid fa-eye"></i> View
                             </a>
-                            <a href="http://192.168.0.136:3000/download/${encodeURIComponent(folderName)}/${safeFilePath}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
+                            <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
                                 <i class="fa-solid fa-download"></i> Download
                             </a>
                         </td>
@@ -1848,7 +1845,7 @@ const TaskTracker = {
     },
 
     async uploadToCurrentFolder(type) {
-        // Grab the correct input based on whether they clicked 'File' or 'Folder'
+        // Support grabbing from either the File input or the Folder input
         const inputId = type === 'folder' ? 'driveFolderInput' : 'driveFileInput';
         const fileInput = document.getElementById(inputId);
         
@@ -1861,12 +1858,12 @@ const TaskTracker = {
 
         const formData = new FormData();
         
-        // Loop through all selected files/folder contents
+        // Loop through everything selected and replace slashes with @@@
         for (let i = 0; i < fileInput.files.length; i++) {
             let file = fileInput.files[i];
-            // webkitRelativePath contains the folder structure (e.g. "MyFolder/subfolder/image.png")
+            // webkitRelativePath grabs the whole folder tree!
             let relativePath = file.webkitRelativePath || file.name;
-            formData.append('files', file, relativePath);
+            formData.append('files', file, relativePath.replace(/\//g, '@@@'));
         }
 
         try {
@@ -1884,7 +1881,6 @@ const TaskTracker = {
             uploadBtn.disabled = false;
         }
     }
-
 };
 
 window.TaskTracker = TaskTracker;
