@@ -1939,14 +1939,16 @@ window.onload = async () => {
     });
 
     if (currentPage === "admin.html") {
-        const savedView = sessionStorage.getItem("currentAdminView")["tasks"];
+        const savedView = sessionStorage.getItem("currentAdminView") || "tasks"; // <-- Fixed
         if (savedView === "employeeDetails") {
             const savedEmpName = sessionStorage.getItem("currentEmployeeDetailName");
             if (savedEmpName) TaskTracker.viewEmployeeDetails(savedEmpName);
             else TaskTracker.switchAdminView('employees'); 
         } else {
-            TaskTracker.switchAdminView(savedView || "tasks");
+            TaskTracker.switchAdminView(savedView);
         }
+        TaskTracker.updateLeaveBadge(); 
+    }
         TaskTracker.updateLeaveBadge(); 
     } else if (currentPage === "employee.html") {
         const savedView = sessionStorage.getItem("currentEmployeeView") || "dashboard";
