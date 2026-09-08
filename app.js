@@ -1725,6 +1725,9 @@ const TaskTracker = {
         document.getElementById("driveFilesContainer").style.display = "block";
         document.getElementById("currentFolderName").innerText = folderName;
         
+        const editForm = document.getElementById('editFolderForm');
+        if (editForm) editForm.style.display = 'none';
+        
         document.getElementById("folderUploadSection").style.display = canUpload ? "flex" : "none";
 
         const filesList = document.getElementById("driveFilesList");
@@ -1741,11 +1744,20 @@ const TaskTracker = {
             }
 
             files.forEach(file => {
+                // Determine if it's inside a subfolder
+                const icon = file.includes('/') ? 'fa-folder-tree' : 'fa-file-lines';
+                
+                // Add two distinct buttons: View (Yellow) and Download (Blue)
                 filesList.innerHTML += `
                     <tr>
-                        <td><i class="fa-solid fa-file-lines" style="color:#94a3b8; margin-right:8px;"></i> ${file}</td>
+                        <td><i class="fa-solid ${icon}" style="color:#94a3b8; margin-right:8px;"></i> ${file}</td>
                         <td>
-                            <a href="http://192.168.0.136:3000/download/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Open / Download</a>
+                            <a href="http://192.168.0.136:3000/view/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                            <a href="http://192.168.0.136:3000/download/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">
+                                <i class="fa-solid fa-download"></i> Download
+                            </a>
                         </td>
                     </tr>
                 `;
@@ -1755,9 +1767,12 @@ const TaskTracker = {
         }
     },
 
-    async uploadToCurrentFolder() {
-        const fileInput = document.getElementById('driveFileInput');
-        if (!fileInput || !fileInput.files[0]) return alert('Please select a file.');
+    async uploadToCurrentFolder(type) {
+        // Grab the correct input based on whether they clicked 'File' or 'Folder'
+        const inputId = type === 'folder' ? 'driveFolderInput' : 'driveFileInput';
+        const fileInput = document.getElementById(inputId);
+        
+        if (!fileInput || fileInput.files.length === 0) return alert(`Please select a ${type} to upload.`);
         
         const uploadBtn = event.currentTarget;
         const originalText = uploadBtn.innerHTML;
@@ -1765,11 +1780,21 @@ const TaskTracker = {
         uploadBtn.disabled = true;
 
         const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
+        
+        // Loop through all selected files/folder contents
+        for (let i = 0; i < fileInput.files.length; i++) {
+            let file = fileInput.files[i];
+            // webkitRelativePath contains the folder structure (e.g. "MyFolder/subfolder/image.png")
+            let relativePath = file.webkitRelativePath || file.name;
+            formData.append('files', file, relativePath);
+        }
 
         try {
-            await fetch(`http://192.168.0.136:3000/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { method: 'POST', body: formData });
-            alert('File saved directly to D: Drive!');
+            await fetch(`http://192.168.0.136:3000/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
+                method: 'POST', 
+                body: formData 
+            });
+            alert(`${type === 'folder' ? 'Folder' : 'File(s)'} saved to D: Drive successfully!`);
             fileInput.value = '';
             this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
