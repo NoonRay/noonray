@@ -39,6 +39,9 @@
         <i class="fa-solid fa-plane-departure"></i> Leave Requests 
         <span id="leaveBadge" style="display:none; background:#ef4444; color:white; border-radius:50%; padding:2px 6px; font-size:12px; margin-left:5px;"></span>
     </a>
+    <a href="#" onclick="TaskTracker.switchAdminView('drive')">
+        <i class="fa-solid fa-hard-drive"></i> Company Drive
+    </a>
 
     <button class="btn logout-btn full-btn" onclick="TaskTracker.logout()">
         <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -228,7 +231,7 @@
                     <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">To</th>
                     <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Status</th>
                     <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Reason</th>
-                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Action</th> <!-- ADDED ACTION COLUMN -->
+                    <th style="color: #334155; border-bottom: 2px solid #cbd5e1;">Action</th>
                 </tr>
             </thead>
             <tbody id="reportLeavesTable"></tbody>
@@ -254,15 +257,6 @@
         </table>
     </div>
 </div>
-
-<div class="card" style="margin-top: 20px; margin-bottom: 25px;">
-        <h3><i class="fa-solid fa-folder-open" style="color:#8b5cf6; margin-right:8px;"></i> Shared D: Drive Files</h3>
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <input type="file" id="sharedFileInput" class="input" style="flex: 1;">
-            <button class="btn" style="background: #8b5cf6;" onclick="TaskTracker.uploadSharedFile()">Upload File</button>
-        </div>
-        <ul id="sharedFileList" style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto;"></ul>
-    </div>
 
 <div id="adminAttendanceView" style="display: none;">
     <div class="card">
@@ -304,6 +298,59 @@
                 </tr>
             </thead>
             <tbody id="adminLeavesTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- COMPANY DRIVE VIEW -->
+<div id="adminDriveView" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h2 style="font-weight: 600;"><i class="fa-solid fa-hard-drive" style="color:#8b5cf6; margin-right: 8px;"></i> Company Drive</h2>
+        <button class="btn" id="createFolderBtn" style="display:none; background: #8b5cf6;" onclick="TaskTracker.toggleCreateFolderForm()">
+            <i class="fa-solid fa-folder-plus"></i> New Folder
+        </button>
+    </div>
+
+    <!-- Admin Folder Creation Form -->
+    <div id="createFolderForm" class="card" style="display:none; margin-bottom: 25px; border-left: 4px solid #8b5cf6;">
+        <h4 style="margin-bottom: 15px;">Create Secure Folder</h4>
+        <input type="text" id="newFolderName" class="input" placeholder="e.g., HR Documents, Project Alpha..." style="margin-bottom: 15px;">
+        
+        <div class="date-row">
+            <div>
+                <label class="label">Who can VIEW files? (Hold Ctrl/Cmd to select multiple)</label>
+                <select id="folderViewers" class="input" multiple style="height: 120px;"></select>
+            </div>
+            <div>
+                <label class="label">Who can UPLOAD files? (Hold Ctrl/Cmd to select multiple)</label>
+                <select id="folderUploaders" class="input" multiple style="height: 120px;"></select>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button class="btn" style="background:#10b981;" onclick="TaskTracker.saveDriveFolder()">Save Folder</button>
+            <button class="btn cancel-btn" onclick="TaskTracker.toggleCreateFolderForm()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Folders Grid -->
+    <div id="driveFoldersList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;"></div>
+
+    <!-- Files Inside Folder -->
+    <div id="driveFilesContainer" style="display: none;" class="card">
+        <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <button class="btn cancel-btn" style="margin-right: 15px;" onclick="TaskTracker.renderDrive()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                <strong id="currentFolderName" style="font-size: 18px; color: #60a5fa;">Folder Name</strong>
+            </div>
+            <div id="folderUploadSection" style="display:none; gap: 10px;">
+                <input type="file" id="driveFileInput" class="input" style="padding: 10px;">
+                <button class="btn" style="background:#10b981; white-space: nowrap;" onclick="TaskTracker.uploadToCurrentFolder()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+            </div>
+        </div>
+        <table class="task-table">
+            <thead><tr><th>File Name</th><th>Action</th></tr></thead>
+            <tbody id="driveFilesList"></tbody>
         </table>
     </div>
 </div>
