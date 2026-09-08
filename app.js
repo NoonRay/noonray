@@ -258,7 +258,8 @@ const TaskTracker = {
             'calendar': document.getElementById("adminCalendarView"),
             'employeeDetails': document.getElementById("adminEmployeeDetailsView"),
             'attendance': document.getElementById("adminAttendanceView"),
-            'leaves': document.getElementById("adminLeavesView")
+            'leaves': document.getElementById("adminLeavesView"),
+            'drive': document.getElementById("adminDriveView") // Added drive view
         };
         const links = document.querySelectorAll(".sidebar a");
 
@@ -295,6 +296,10 @@ const TaskTracker = {
             views.leaves.style.display = "block";
             if(links[5]) links[5].classList.add("active"); 
             this.renderAdminLeaves();
+        } else if (view === "drive" && views.drive) { 
+            views.drive.style.display = "block";
+            if(links[6]) links[6].classList.add("active"); 
+            this.renderDrive();
         }
     },
 
@@ -325,7 +330,6 @@ const TaskTracker = {
         window.location.href = "index.html";
     },
 
-    // --- NEW: FUNCTION TO MANUALLY OVERRIDE AUTO-MARKED LEAVE ---
     async markAutoLeaveAsPresent(employeeName, dateStr) {
         if(!confirm(`Manually mark ${employeeName} as Present for ${dateStr}?`)) return;
         try {
@@ -335,10 +339,10 @@ const TaskTracker = {
                 status: 'Present',
                 checkInServerTime: null,
                 checkOutServerTime: null,
-                totalTime: 'Manual Override' // Identifies it as overridden by admin
+                totalTime: 'Manual Override'
             });
             alert("Marked as Present successfully!");
-            this.viewEmployeeDetails(employeeName); // Refresh view
+            this.viewEmployeeDetails(employeeName); 
         } catch (error) { 
             console.error(error); 
             alert("Failed to mark as present."); 
@@ -838,7 +842,6 @@ const TaskTracker = {
                 if(l.status === 'Auto-Marked') statusColor = "#ef4444"; 
                 
                 if (leavesTable) {
-                    // [IMPROVED]: Display the Action Button for Auto-Marked leaves
                     leavesTable.innerHTML += `
                         <tr>
                             <td style="color: black; border-bottom: 1px solid #e2e8f0;">${l.leaveType || '-'}</td>
@@ -1320,16 +1323,22 @@ const TaskTracker = {
         sessionStorage.setItem("currentEmployeeView", view);
         const dashboard = document.getElementById("employeeDashboardView");
         const leaveForm = document.getElementById("employeeLeaveFormView");
+        const driveView = document.getElementById("employeeDriveView"); // added
         const links = document.querySelectorAll(".sidebar a");
 
         if(dashboard) dashboard.style.display = "none";
         if(leaveForm) leaveForm.style.display = "none";
+        if(driveView) driveView.style.display = "none"; // added
         links.forEach(l => l.classList.remove("active"));
 
         if (view === 'leaveForm' && leaveForm) {
             leaveForm.style.display = "block";
             if(links[2]) links[2].classList.add("active"); 
             this.renderEmployeeLeaves(); 
+        } else if (view === 'drive' && driveView) { // added
+            driveView.style.display = "block";
+            if(links[3]) links[3].classList.add("active");
+            this.renderDrive();
         } else if (dashboard) {
             dashboard.style.display = "block";
             if(links[0]) links[0].classList.add("active");
@@ -1621,52 +1630,157 @@ const TaskTracker = {
             await updateDoc(doc(db, "leaves", leaveId), { status: 'Rejected' });
             this.renderAdminLeaves();
         } catch (error) { console.error(error); }
-    }, // <-- Notice: Just a comma here!
+    },
 
-    // --- NEW FILE SHARING LOGIC ---
-    async uploadSharedFile() {
-        const fileInput = document.getElementById('sharedFileInput');
-        if (!fileInput || !fileInput.files[0]) return alert('Please select a file first.');
+    // --- LOCAL D: DRIVE LOGIC (NO FIREBASE) ---
+    currentDriveFolderName: null,
+
+    toggleCreateFolderForm() {
+        const form = document.getElementById('createFolderForm');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            const viewers = document.getElementById('folderViewers');
+            const uploaders = document.getElementById('folderUploaders');
+            let options = '<option value="All" selected>All Employees</option>';
+            users.forEach(u => {
+                if (u.role !== 'admin') options += `<option value="${u.name}">${u.name}</option>`;
+            });
+            if(viewers) viewers.innerHTML = options;
+            if(uploaders) uploaders.innerHTML = options;
+        } else {
+            form.style.display = 'none';
+        }
+    },
+
+    async saveDriveFolder() {
+        const name = document.getElementById('newFolderName').value.trim();
+        if (!name) return alert('Folder name required.');
+        if (name.includes('/') || name.includes('\\')) return alert('Invalid characters in folder name.');
+
+        const viewers = Array.from(document.getElementById('folderViewers').selectedOptions).map(opt => opt.value);
+        const uploaders = Array.from(document.getElementById('folderUploaders').selectedOptions).map(opt => opt.value);
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+
+        try {
+            await fetch('http://192.168.0.136:3000/create-folder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, viewers, uploaders, createdBy: user.name })
+            });
+            alert("Folder Created on D: Drive!");
+            this.toggleCreateFolderForm();
+            this.renderDrive();
+        } catch (e) {
+            console.error(e); alert("Failed to create folder. Is the host server running?");
+        }
+    },
+
+    async renderDrive() {
+        const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
+        const foldersList = document.getElementById("driveFoldersList");
+        const filesContainer = document.getElementById("driveFilesContainer");
+        const createBtn = document.getElementById("createFolderBtn");
         
+        if(!foldersList || !filesContainer) return;
+
+        filesContainer.style.display = "none";
+        foldersList.style.display = "grid";
+        if (user.role === "admin" && createBtn) createBtn.style.display = "block";
+
+        foldersList.innerHTML = "<p style='grid-column: 1/-1; color: white;'>Loading folders...</p>";
+
+        try {
+            const res = await fetch(`http://192.168.0.136:3000/folders?user=${encodeURIComponent(user.name)}&role=${user.role}`);
+            const folders = await res.json();
+            
+            foldersList.innerHTML = "";
+            if (folders.length === 0) {
+                foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#94a3b8;'>No folders have been shared with you.</p>";
+                return;
+            }
+
+            folders.forEach(folder => {
+                const canUpload = user.role === "admin" || folder.uploaders.includes("All") || folder.uploaders.includes(user.name);
+                
+                foldersList.innerHTML += `
+                    <div class="card" style="cursor:pointer; text-align:center; padding: 25px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; background: rgba(0,0,0,0.2);" 
+                         onmouseover="this.style.background='rgba(59, 130, 246, 0.1)'" onmouseout="this.style.background='rgba(0,0,0,0.2)'"
+                         onclick="TaskTracker.openDriveFolder('${folder.name.replace(/'/g, "\\'")}', ${canUpload})">
+                        <i class="fa-solid fa-folder-closed" style="font-size: 50px; color: #8b5cf6; margin-bottom: 15px;"></i>
+                        <h4 style="color: white; margin-bottom: 10px; font-size: 16px;">${folder.name}</h4>
+                        <span style="font-size:11px; background: ${canUpload ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color: ${canUpload ? '#34d399' : '#f87171'}; padding: 4px 8px; border-radius: 6px; font-weight: bold;">
+                            ${canUpload ? '<i class="fa-solid fa-upload"></i> Can Upload' : '<i class="fa-solid fa-eye"></i> View Only'}
+                        </span>
+                    </div>
+                `;
+            });
+        } catch (e) { 
+            foldersList.innerHTML = "<p style='grid-column: 1/-1; color:#ef4444;'>Failed to connect to Local D: Drive Server.</p>";
+        }
+    },
+
+    async openDriveFolder(folderName, canUpload) {
+        this.currentDriveFolderName = folderName;
+        document.getElementById("driveFoldersList").style.display = "none";
+        document.getElementById("driveFilesContainer").style.display = "block";
+        document.getElementById("currentFolderName").innerText = folderName;
+        
+        document.getElementById("folderUploadSection").style.display = canUpload ? "flex" : "none";
+
+        const filesList = document.getElementById("driveFilesList");
+        filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
+
+        try {
+            const res = await fetch(`http://192.168.0.136:3000/files/${encodeURIComponent(folderName)}`);
+            const files = await res.json();
+            
+            filesList.innerHTML = "";
+            if (files.length === 0) {
+                filesList.innerHTML = "<tr><td colspan='2' style='text-align:center; color:#94a3b8;'>This folder is empty.</td></tr>";
+                return;
+            }
+
+            files.forEach(file => {
+                filesList.innerHTML += `
+                    <tr>
+                        <td><i class="fa-solid fa-file-lines" style="color:#94a3b8; margin-right:8px;"></i> ${file}</td>
+                        <td>
+                            <a href="http://192.168.0.136:3000/download/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Open / Download</a>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (e) { 
+            filesList.innerHTML = "<tr><td colspan='2' style='text-align:center; color:#ef4444;'>Error loading files.</td></tr>";
+        }
+    },
+
+    async uploadToCurrentFolder() {
+        const fileInput = document.getElementById('driveFileInput');
+        if (!fileInput || !fileInput.files[0]) return alert('Please select a file.');
+        
+        const uploadBtn = event.currentTarget;
+        const originalText = uploadBtn.innerHTML;
+        uploadBtn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Uploading...";
+        uploadBtn.disabled = true;
+
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
 
         try {
-            await fetch('http://192.168.0.136:3000/upload', { method: 'POST', body: formData });
-            alert('File uploaded to D: Drive successfully!');
+            await fetch(`http://192.168.0.136:3000/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { method: 'POST', body: formData });
+            alert('File saved directly to D: Drive!');
             fileInput.value = '';
-            this.loadSharedFiles(); // Refresh the list
+            this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
-            alert('Upload failed. Is the Node.js server running in your command prompt?');
-        } 
-    },
-
-    async loadSharedFiles() {
-        const fileList = document.getElementById('sharedFileList');
-        if (!fileList) return;
-        
-        try {
-            const res = await fetch('http://192.168.0.136:3000/files');
-            const files = await res.json();
-            
-            if (files.length === 0) {
-                fileList.innerHTML = '<li style="color: #94a3b8; padding: 10px 0;">No files uploaded yet.</li>';
-                return;
-            }
-
-            fileList.innerHTML = files.map(f => {
-                const originalName = f.substring(f.indexOf('-') + 1); // Remove the timestamp for display
-                return `<li style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center;">
-                    <i class="fa-solid fa-file" style="color: #94a3b8; margin-right: 10px;"></i>
-                    <a href="http://192.168.0.136:3000/download/${f}" target="_blank" style="color: #60a5fa; text-decoration: none;">${originalName}</a>
-                </li>`;
-            }).join('');
-        } catch (e) {
-            fileList.innerHTML = '<li style="color: #ef4444; padding: 10px 0;">Could not connect to the local file server.</li>';
+            alert('Upload failed. Host server might be unreachable.');
+        } finally {
+            uploadBtn.innerHTML = originalText;
+            uploadBtn.disabled = false;
         }
     }
 
-}; // <--- THIS is where the TaskTracker object actually closes!
+};
 
 window.TaskTracker = TaskTracker;
 
@@ -1701,8 +1815,6 @@ window.onload = async () => {
     generateCalendar();
     loadHolidays();
     populateEmployeeDropdown();
-
-    TaskTracker.loadSharedFiles();
     
     if (currentPage === "index.html" || currentPage === "") {
         triggerFirecrackers();
