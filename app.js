@@ -1357,9 +1357,10 @@ const TaskTracker = {
         }
     },
 
-    async renderEmployeeLeaves() {
+   async renderEmployeeLeaves() {
         try {
             const table = document.getElementById("employeeLeavesTable");
+            const totalLeavesElem = document.getElementById("employeeTotalLeaves");
             if (!table) return;
             table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
@@ -1368,10 +1369,24 @@ const TaskTracker = {
 
             const snapshot = await getDocs(collection(db, "leaves"));
             let leaves = [];
+            let totalLeaveDays = 0;
+
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
                 if (data.employee === user.name) {
                     leaves.push(data);
+                    if (data.status === 'Approved') {
+                        let currentDate = new Date(data.fromDate + 'T00:00:00');
+                        const endDate = new Date(data.toDate + 'T00:00:00');
+                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
+                            while(currentDate <= endDate) {
+                                if (isWorkingDay(currentDate)) {
+                                    totalLeaveDays += (data.dayType === 'Full') ? 1 : 0.5;
+                                }
+                                currentDate.setDate(currentDate.getDate() + 1);
+                            }
+                        }
+                    }
                 }
             });
 
@@ -1431,10 +1446,15 @@ const TaskTracker = {
                                 status: 'Auto-Marked',
                                 reason: 'No Check-In on Working Day'
                             });
+                            totalLeaveDays += 1;
                         }
                     }
                 }
                 loopDate.setDate(loopDate.getDate() + 1);
+            }
+
+            if (totalLeavesElem) {
+                totalLeavesElem.innerText = `Total Leaves Taken: ${totalLeaveDays} Days`;
             }
 
             leaves.sort((a, b) => {
