@@ -1847,9 +1847,12 @@ const TaskTracker = {
                 const displayName = isFolder ? file.slice(0, -1) : file;
                 const icon = isFolder ? 'fa-folder' : 'fa-file-lines';
                 
+                // Construct the full relative path for nested files and folders
+                const relativeSubPath = folderName ? `${folderName}/${displayName}` : displayName;
+
                 let actionsHTML = isFolder 
                     ? `
-                        <button class="action-btn" style="background:#f59e0b; padding: 6px 12px; margin-right: 5px;" onclick="TaskTracker.openDriveFolder('${folderName}/${displayName}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open</button>
+                        <button class="action-btn" style="background:#f59e0b; padding: 6px 12px; margin-right: 5px;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open</button>
                         <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
                       `
                     : `
@@ -1859,7 +1862,7 @@ const TaskTracker = {
 
                 filesList.innerHTML += `
                     <tr>
-                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${folderName}/${displayName}', ${canUpload})"` : ''}>
+                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"` : ''}>
                             <i class="fa-solid ${icon}" style="color:${isFolder ? '#f59e0b' : '#94a3b8'}; margin-right:8px;"></i> 
                             <strong style="${!isFolder ? 'color:#e2e8f0;' : ''}">${displayName}</strong>
                         </td>
