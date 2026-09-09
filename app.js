@@ -1651,7 +1651,7 @@ const TaskTracker = {
                 { name: "Athivel A", role: "employee" },
                 { name: "Ahamad shareef Sheik", role: "employee" },
                 { name: "Haris E", role: "employee" },
-                { name: "Pratik Balbudhe", role: "employee" },
+                { name: "Pratik Balbudhe ", role: "employee" },
                 { name: "Tammisetti Venkateswararao", role: "employee" },
                 { name: "Murali karthik Kuchan", role: "intern" },
                 { name: "Rushil Kumar M", role: "employee" },
