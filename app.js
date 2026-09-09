@@ -1436,6 +1436,9 @@ const TaskTracker = {
                 }
                 loopDate.setDate(loopDate.getDate() + 1);
             }
+            if (totalLeavesElem) {
+                totalLeavesElem.innerText = `Total Leaves Taken: ${totalLeaveDays} Days`;
+            }
 
             leaves.sort((a, b) => {
                 let dA = new Date(a.fromDate || 0).getTime();
