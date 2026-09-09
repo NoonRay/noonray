@@ -1360,7 +1360,6 @@ const TaskTracker = {
     async renderEmployeeLeaves() {
         try {
             const table = document.getElementById("employeeLeavesTable");
-            const totalLeavesElem = document.getElementById("employeeTotalLeaves");
             if (!table) return;
             table.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading leaves...</td></tr>";
 
@@ -1369,33 +1368,73 @@ const TaskTracker = {
 
             const snapshot = await getDocs(collection(db, "leaves"));
             let leaves = [];
-            let totalLeaveDays = 0; 
-
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
                 if (data.employee === user.name) {
                     leaves.push(data);
-                    
-                    // Safely calculate only Approved leaves for the total counter
-                    if (data.status === 'Approved') {
-                        let currentDate = new Date(data.fromDate + 'T00:00:00');
-                        const endDate = new Date(data.toDate + 'T00:00:00');
-                        
-                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
-                            while(currentDate <= endDate) {
-                                if (isWorkingDay(currentDate)) {
-                                    totalLeaveDays += (data.dayType === 'Full') ? 1 : 0.5;
-                                }
-                                currentDate.setDate(currentDate.getDate() + 1);
-                            }
-                        }
-                    }
                 }
             });
 
-            // Update the UI Header
-            if (totalLeavesElem) {
-                totalLeavesElem.innerText = `Total Leaves Taken: ${totalLeaveDays} Days`;
+            const attSnap = await getDocs(collection(db, "attendance"));
+            let existingRecords = [];
+            let earliestDate = new Date(); 
+            
+            attSnap.forEach(docSnap => {
+                const att = docSnap.data();
+                if(att.employee === user.name) {
+                    existingRecords.push(att);
+                    const dStr = att.dateStr || att.date;
+                    if (dStr) {
+                        const d = new Date(dStr + 'T00:00:00');
+                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
+                    }
+                }
+            });
+            
+            const attMap = {};
+            existingRecords.forEach(att => {
+                const displayDate = att.dateStr || att.date;
+                if (displayDate) attMap[displayDate] = att;
+            });
+
+            const cutoffDate = new Date(2026, 5, 15);
+            cutoffDate.setHours(0, 0, 0, 0);
+
+            let startMs = Math.min(earliestDate.getTime(), cutoffDate.getTime());
+            if(isNaN(startMs)) startMs = cutoffDate.getTime();
+
+            const employeeData = users.find(u => u.name === user.name);
+            if (employeeData && employeeData.joiningDate) {
+                const joinDateMs = new Date(employeeData.joiningDate + 'T00:00:00').getTime();
+                if (!isNaN(joinDateMs) && startMs < joinDateMs) {
+                    startMs = joinDateMs;
+                }
+            }
+
+            let loopDate = new Date(startMs);
+            loopDate.setHours(0, 0, 0, 0);
+
+            const todayStr = getLocalDate();
+            const endDate = new Date(todayStr + 'T00:00:00');
+
+            while (loopDate <= endDate) {
+                if (isWorkingDay(loopDate)) {
+                    const dateString = formatISTDate(loopDate);
+                    
+                    if (loopDate >= cutoffDate) {
+                        if (!attMap[dateString]) {
+                            leaves.push({
+                                leaveType: 'Unmarked Absent',
+                                dayType: 'Full',
+                                fromDate: dateString,
+                                toDate: dateString,
+                                status: 'Auto-Marked',
+                                reason: 'No Check-In on Working Day'
+                            });
+                        }
+                    }
+                }
+                loopDate.setDate(loopDate.getDate() + 1);
             }
 
             leaves.sort((a, b) => {
@@ -1412,6 +1451,7 @@ const TaskTracker = {
                 if(data.status === 'Approved') statusColor = "#10b981"; 
                 if(data.status === 'Rejected') statusColor = "#ef4444"; 
                 if(data.status === 'Pending') statusColor = "#eab308";  
+                if(data.status === 'Auto-Marked') statusColor = "#ef4444"; 
 
                 table.innerHTML += `
                     <tr>
