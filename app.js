@@ -1853,7 +1853,7 @@ const TaskTracker = {
         filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
 
         try {
-            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`);
+            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`, {     headers: { 'ngrok-skip-browser-warning': 'true' } });
             const files = await res.json();
             
             filesList.innerHTML = "";
