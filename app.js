@@ -1712,7 +1712,7 @@ const TaskTracker = {
         try {
             // 1. Create physical folder on D: Drive
             try {
-                const response = await fetch('http://192.168.0.136:3000/create-folder', {
+                const response = await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-folder', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
@@ -1807,7 +1807,7 @@ const TaskTracker = {
         if(!confirm(`WARNING: Completely delete "${folderName}" and all contents?`)) return;
         try {
             await deleteDoc(doc(db, "drive_folders", docId));
-            await fetch(`http://192.168.0.136:3000/delete-folder/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
+            await fetch(`https://knoll-clean-starlet.ngrok-free.dev/delete-folder/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
             alert("Folder deleted.");
             this.renderDrive();
         } catch (e) { console.error(e); }
@@ -1818,7 +1818,7 @@ const TaskTracker = {
         if (!subFolderName) return;
 
         try {
-            await fetch('http://192.168.0.136:3000/create-subfolder', {
+            await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-subfolder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
@@ -1853,7 +1853,7 @@ const TaskTracker = {
         filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
 
         try {
-            const res = await fetch(`http://192.168.0.136:3000/files/${encodeURIComponent(folderName)}`);
+            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`);
             const files = await res.json();
             
             filesList.innerHTML = "";
@@ -1873,11 +1873,11 @@ const TaskTracker = {
                 let actionsHTML = isFolder 
                     ? `
                         <button class="action-btn" style="background:#f59e0b; padding: 6px 12px; margin-right: 5px;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open</button>
-                        <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
+                        <a href="https://knoll-clean-starlet.ngrok-free.dev/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
                       `
                     : `
-                        <a href="http://192.168.0.136:3000/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
-                        <a href="http://192.168.0.136:3000/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
+                        <a href="https://knoll-clean-starlet.ngrok-free.dev/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
+                        <a href="https://knoll-clean-starlet.ngrok-free.dev/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
                       `;
 
                 filesList.innerHTML += `
@@ -1913,7 +1913,7 @@ const TaskTracker = {
         }
 
         try {
-            await fetch(`http://192.168.0.136:3000/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
+            await fetch(`https://knoll-clean-starlet.ngrok-free.dev/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
                 method: 'POST', body: formData 
             });
             alert('Uploaded successfully!');
