@@ -209,7 +209,8 @@ const users = [
     //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
     //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
     //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
-    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" }
+    { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" },
+    { email: "noor", password: "NR018", name: "Noor Alam", role: "employee", joiningDate: "2026-09-15" }
 ];
 
 function populateEmployeeDropdown() {
