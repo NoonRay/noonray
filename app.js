@@ -1680,7 +1680,8 @@ const TaskTracker = {
                 { name: "Premkumar G", role: "employee" },
                 { name: "Vigneshwaran K", role: "employee" },
                 { name: "Sakthi Prasanna S", role: "employee" },
-                { name: "Devshree Avinash Vengurlekar", role: "intern" }
+                { name: "Devshree Avinash Vengurlekar", role: "intern" },
+                {name: "Noor Alam", role: "employee"}
             ];
 
             let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
