@@ -1651,7 +1651,6 @@ const TaskTracker = {
             const viewers = document.getElementById('folderViewers');
             const uploaders = document.getElementById('folderUploaders');
             
-            // Hardcoded fallback list matching your exact user array so it never fails
             const employeeList = [
                 { name: "Hari Prasath S", role: "employee" },
                 { name: "CB Lathieswar Reddy", role: "employee" },
@@ -1667,7 +1666,7 @@ const TaskTracker = {
                 { name: "Vigneshwaran K", role: "employee" },
                 { name: "Sakthi Prasanna S", role: "employee" },
                 { name: "Devshree Avinash Vengurlekar", role: "intern" },
-                {name: "Noor Alam", role: "employee"}
+                { name: "Noor Alam", role: "employee"}
             ];
 
             let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
@@ -1684,7 +1683,7 @@ const TaskTracker = {
             form.style.display = 'none';
         }
     },
-   // --- THIS IS THE MISSING FUNCTION TO ADD ---
+
     async saveDriveFolder() {
         const name = document.getElementById('newFolderName').value.trim();
         if (!name) return alert('Folder name required.');
@@ -1698,14 +1697,10 @@ const TaskTracker = {
         if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
 
         try {
-            // 1. Create physical folder on D: Drive
             try {
                 const response = await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-folder', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': 'true' 
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
                 });
                 
@@ -1716,10 +1711,9 @@ const TaskTracker = {
                 console.error("Network Error:", networkError);
                 alert("NETWORK ERROR: Your browser is blocking the connection to the Node.js server. If you are on GitHub Pages (https://), you cannot connect to a local server (http://). Please open the admin.html file directly from your computer to use the Drive feature.");
                 if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
-                return; // Stop execution here if node server fails
+                return;
             }
 
-            // 2. Save permissions to Firebase
             await addDoc(collection(db, "drive_folders"), {
                 name, viewers, uploaders,
                 createdBy: user.name,
@@ -1737,7 +1731,7 @@ const TaskTracker = {
             if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
         }
     },
-    // --- END OF MISSING FUNCTION ---
+
     async renderDrive() {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
         const foldersList = document.getElementById("driveFoldersList");
@@ -1753,7 +1747,6 @@ const TaskTracker = {
         foldersList.innerHTML = "<p style='grid-column: 1/-1; color: white;'>Loading folders...</p>";
 
         try {
-            // 1. Get folder permissions from Firebase
             const snap = await getDocs(collection(db, "drive_folders"));
             foldersList.innerHTML = "";
             let hasFolders = false;
@@ -1811,10 +1804,7 @@ const TaskTracker = {
         try {
             await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-subfolder', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true' 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
             });
             this.openDriveFolder(this.currentDriveFolderName, true);
@@ -1847,7 +1837,7 @@ const TaskTracker = {
         filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
 
         try {
-            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`, {     headers: { 'ngrok-skip-browser-warning': 'true' } });
+            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
             const files = await res.json();
             
             filesList.innerHTML = "";
@@ -1861,7 +1851,6 @@ const TaskTracker = {
                 const displayName = isFolder ? file.slice(0, -1) : file;
                 const icon = isFolder ? 'fa-folder' : 'fa-file-lines';
                 
-                // Construct the full relative path for nested files and folders
                 const relativeSubPath = folderName ? `${folderName}/${displayName}` : displayName;
 
                 let actionsHTML = isFolder 
@@ -1908,13 +1897,10 @@ const TaskTracker = {
 
         try {
             await fetch(`https://knoll-clean-starlet.ngrok-free.dev/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
-                method: 'POST', 
-                body: formData,
-                headers: { 'ngrok-skip-browser-warning': 'true' }
+                method: 'POST', body: formData 
             });
             alert('Uploaded successfully!');
             fileInput.value = "";
-            fileInput.value = '';
             this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
             alert('Upload failed.');
