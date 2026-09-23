@@ -9,9 +9,7 @@ getDoc,
 updateDoc,
 deleteDoc, // Added here
 doc,
-serverTimestamp,
-query,
-where
+serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -36,7 +34,5 @@ getDoc,
 updateDoc,
 deleteDoc, // Exported here
 doc,
-serverTimestamp,
-query,
-where
+serverTimestamp
 };
