@@ -1697,11 +1697,10 @@ const TaskTracker = {
         if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
 
         try {
-            const response = await fetch('https://rotten-insect-51.loca.lt/create-folder', {
+            const response = await fetch('https://drive.co-doc.in/create-folder', {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Bypass-Tunnel-Reminder': 'true' 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ name })
             });
@@ -1787,9 +1786,8 @@ const TaskTracker = {
         if(!confirm(`WARNING: Completely delete "${folderName}" and all contents?`)) return;
         try {
             await deleteDoc(doc(db, "drive_folders", docId));
-            await fetch(`https://rotten-insect-51.loca.lt/delete-folder/${encodeURIComponent(folderName)}`, { 
-                method: 'DELETE',
-                headers: { 'Bypass-Tunnel-Reminder': 'true' }
+            await fetch(`https://drive.co-doc.in/delete-folder/${encodeURIComponent(folderName)}`, { 
+                method: 'DELETE'
             });
             alert("Folder deleted.");
             this.renderDrive();
@@ -1801,11 +1799,10 @@ const TaskTracker = {
         if (!subFolderName) return;
 
         try {
-            await fetch('https://rotten-insect-51.loca.lt/create-subfolder', {
+            await fetch('https://drive.co-doc.in/create-subfolder', {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Bypass-Tunnel-Reminder': 'true' 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
             });
@@ -1839,9 +1836,7 @@ const TaskTracker = {
         filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
 
         try {
-            const res = await fetch(`https://rotten-insect-51.loca.lt/files/${encodeURIComponent(folderName)}`, { 
-                headers: { 'Bypass-Tunnel-Reminder': 'true' } 
-            });
+            const res = await fetch(`https://drive.co-doc.in/files/${encodeURIComponent(folderName)}`);
             const files = await res.json();
             
             filesList.innerHTML = "";
@@ -1860,11 +1855,11 @@ const TaskTracker = {
                 let actionsHTML = isFolder 
                     ? `
                         <button class="action-btn" style="background:#f59e0b; padding: 6px 12px; margin-right: 5px;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open</button>
-                        <a href="https://rotten-insect-51.loca.lt/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
+                        <a href="https://drive.co-doc.in/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
                       `
                     : `
-                        <a href="https://rotten-insect-51.loca.lt/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
-                        <a href="https://rotten-insect-51.loca.lt/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
+                        <a href="https://drive.co-doc.in/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
+                        <a href="https://drive.co-doc.in/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
                       `;
 
                 filesList.innerHTML += `
@@ -1889,26 +1884,43 @@ const TaskTracker = {
         
         const uploadBtn = event.currentTarget;
         const originalText = uploadBtn.innerHTML;
-        uploadBtn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Uploading...";
         uploadBtn.disabled = true;
 
-        const formData = new FormData();
-        for (let i = 0; i < fileInput.files.length; i++) {
-            let file = fileInput.files[i];
-            let relativePath = file.webkitRelativePath || file.name;
-            formData.append('files', file, relativePath.replace(/\//g, '@@@'));
-        }
+        const CHUNK_SIZE = 20 * 1024 * 1024; // 20 MB chunks
 
         try {
-            await fetch(`https://rotten-insect-51.loca.lt/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
-                method: 'POST', 
-                body: formData,
-                headers: { 'Bypass-Tunnel-Reminder': 'true' }
-            });
+            for (let i = 0; i < fileInput.files.length; i++) {
+                let file = fileInput.files[i];
+                let relativePath = file.webkitRelativePath || file.name;
+                let totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+                uploadBtn.innerHTML = `<i class='fa-solid fa-spinner fa-spin'></i> Uploading ${file.name}...`;
+
+                for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                    let start = chunkIndex * CHUNK_SIZE;
+                    let end = Math.min(start + CHUNK_SIZE, file.size);
+                    let chunk = file.slice(start, end);
+
+                    let response = await fetch(`https://drive.co-doc.in/upload-chunk`, {
+                        method: 'POST',
+                        headers: {
+                            'fileName': relativePath.replace(/\//g, '@@@'),
+                            'folderName': this.currentDriveFolderName || '',
+                            'chunkIndex': chunkIndex,
+                            'totalChunks': totalChunks
+                        },
+                        body: chunk
+                    });
+
+                    if (!response.ok) throw new Error(`Upload failed at chunk ${chunkIndex}`);
+                }
+            }
+
             alert('Uploaded successfully!');
             fileInput.value = "";
             this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
+            console.error(e);
             alert('Upload failed.');
         } finally {
             uploadBtn.innerHTML = originalText;
