@@ -1,5 +1,5 @@
 import {
-    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc
+    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc, query, where
 } from "./firebase.js";
 
 // =====================================================
@@ -193,22 +193,11 @@ const users = [
     { email: "pratik", password: "NR011", name: "Pratik Balbudhe ", role: "employee" },
     { email: "venkat", password: "NR012", name: "Tammisetti Venkateswararao", role: "employee",joiningDate: "2026-06-23"},
     { email: "karthik", password: "NRIN02", name: "Murali karthik Kuchan", role: "intern" },
-    //{ email: "javid", password: "NRIN03", name: "Mohammed Javid Jafir N", role: "intern" },
     { email: "rushil", password: "NRIN04", name: "Rushil Kumar M", role: "employee" },
     { email: "aravindhanathan", password: "NRIN05", name: "Aravindhanathan Gurumoorthy", role: "employee" },
-    //{ email: "guganeshwaran", password: "NRIN07", name: "Guganeshwaran S", role: "intern" },
-    //{ email: "sruthi", password: "NRIN08", name: "Sruthi Raj R", role: "intern" },
-    //{ email: "sriharish", password: "NRIN09", name: "Sriharish S R", role: "intern" },
-    //{ email: "siva", password: "NRIN010", name: "Siva S", role: "intern" },
     { email: "premkumar", password: "NRIN011", name: "Premkumar G", role: "employee" },
-    //{ email: "kunal", password: "NRIN012", name: "Kunal Ramteke", role: "intern" },
     { email: "vigneshwaran", password: "NRIN013", name: "Vigneshwaran K", role: "employee", joiningDate: "2026-06-10" },
     { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "employee", joiningDate: "2026-06-10" },
-    //{ email: "sania", password: "NRIN015", name: "Sania P", role: "intern" },
-    //{ email: "harish", password: "NRIN016", name: "Harish K", role: "intern" },
-    //{ email: "daniel", password: "NRIN017", name: "Daniel Joshua ES", role: "intern" },
-    //{ email: "hansini", password: "NRIN018", name: "Hansini G", role: "intern" },
-    //{ email: "arun", password: "NRIN019", name: "Arun M", role: "intern" },
     { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" },
     { email: "noor", password: "NR018", name: "Noor Alam", role: "employee", joiningDate: "2026-09-15" }
 ];
@@ -628,15 +617,14 @@ const TaskTracker = {
         if(!currentUser) return;
 
         try {
-            const snapshot = await getDocs(collection(db,"tasks"));
-            let myTasks = [];
+            const q = query(collection(db, "tasks"), where("employee", "==", currentUser.name));
+            const snapshot = await getDocs(q);
             
+            let myTasks = [];
             snapshot.forEach((taskDoc)=>{
                 const task = taskDoc.data();
                 task.id = taskDoc.id; 
-                if(task.employee === currentUser.name){
-                    myTasks.push(task);
-                }
+                myTasks.push(task); 
             });
 
             myTasks.sort((a, b) => {
@@ -724,44 +712,42 @@ const TaskTracker = {
         if (leavesTable) leavesTable.innerHTML = "<tr><td colspan='7' style='text-align:center; color:black;'>Loading...</td></tr>"; 
 
         try {
-            const leaveSnap = await getDocs(collection(db, "leaves"));
+            const leavesQ = query(collection(db, "leaves"), where("employee", "==", employeeName));
+            const leaveSnap = await getDocs(leavesQ);
             let totalLeaveDays = 0;
             let employeeLeavesForTable = []; 
             
             leaveSnap.forEach(docSnap => {
                 const l = docSnap.data();
-                if(l.employee === employeeName) {
-                    employeeLeavesForTable.push(l); 
+                employeeLeavesForTable.push(l); 
+                
+                if (l.status === 'Approved') {
+                    let currentDate = new Date(l.fromDate + 'T00:00:00');
+                    const endDate = new Date(l.toDate + 'T00:00:00');
                     
-                    if (l.status === 'Approved') {
-                        let currentDate = new Date(l.fromDate + 'T00:00:00');
-                        const endDate = new Date(l.toDate + 'T00:00:00');
-                        
-                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
-                            while(currentDate <= endDate) {
-                                if (isWorkingDay(currentDate)) {
-                                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
-                                }
-                                currentDate.setDate(currentDate.getDate() + 1);
+                    if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
+                        while(currentDate <= endDate) {
+                            if (isWorkingDay(currentDate)) {
+                                totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
                             }
+                            currentDate.setDate(currentDate.getDate() + 1);
                         }
                     }
                 }
             });
 
-            const attSnap = await getDocs(collection(db, "attendance"));
+            const attQ = query(collection(db, "attendance"), where("employee", "==", employeeName));
+            const attSnap = await getDocs(attQ);
             let existingRecords = [];
             let earliestDate = new Date(); 
             
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                if(att.employee === employeeName) {
-                    existingRecords.push(att);
-                    const dStr = att.dateStr || att.date;
-                    if (dStr) {
-                        const d = new Date(dStr + 'T00:00:00');
-                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
-                    }
+                existingRecords.push(att);
+                const dStr = att.dateStr || att.date;
+                if (dStr) {
+                    const d = new Date(dStr + 'T00:00:00');
+                    if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
                 }
             });
             
@@ -927,14 +913,13 @@ const TaskTracker = {
                 attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
             }
 
-            const taskSnap = await getDocs(collection(db, "tasks"));
+            const taskQ = query(collection(db, "tasks"), where("employee", "==", employeeName));
+            const taskSnap = await getDocs(taskQ);
             let employeeTasks = [];
             
             taskSnap.forEach(docSnap => {
                 const task = docSnap.data();
-                if(task.employee === employeeName) {
-                    employeeTasks.push(task);
-                }
+                employeeTasks.push(task);
             });
 
             employeeTasks.sort((a, b) => {
@@ -1017,7 +1002,12 @@ const TaskTracker = {
         }
 
         try {
-            const snapshot = await getDocs(collection(db, "attendance"));
+            const q = query(
+                collection(db, "attendance"), 
+                where("employee", "==", user.name),
+                where("dateStr", "==", todayStr)
+            );
+            const snapshot = await getDocs(q);
             let todayRecord = null;
             
             snapshot.forEach(docSnap => {
@@ -1085,17 +1075,19 @@ const TaskTracker = {
         }
         
         try {
-            const snapshot = await getDocs(collection(db, "attendance"));
+            const q = query(
+                collection(db, "attendance"), 
+                where("employee", "==", user.name),
+                where("dateStr", "==", todayStr)
+            );
+            const snapshot = await getDocs(q);
             let existingDocId = null;
             let existingData = null;
 
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.employee === user.name && data.dateStr === todayStr) {
-                    existingDocId = docSnap.id;
-                    existingData = data;
-                }
-            });
+            if (!snapshot.empty) {
+                existingDocId = snapshot.docs[0].id;
+                existingData = snapshot.docs[0].data();
+            }
 
             if (action === 'CheckIn') {
                 if (existingDocId) {
@@ -1293,21 +1285,20 @@ const TaskTracker = {
         table.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Loading tasks...</td></tr>";
 
         try {
-            const snapshot = await getDocs(collection(db, "tasks"));
+            const q = query(collection(db, "tasks"), where("startDate", "==", formattedDate));
+            const snapshot = await getDocs(q);
             table.innerHTML = ""; 
             let hasTasks = false;
 
             snapshot.forEach(doc => {
+                hasTasks = true;
                 const task = doc.data();
-                if (task.startDate === formattedDate) {
-                    hasTasks = true;
-                    table.innerHTML += `
-                    <tr>
-                        <td>${task.title}</td>
-                        <td>${task.employee}</td>
-                        <td><span style="background:#1e293b; padding:4px 8px; border-radius:4px; font-size:12px;">${task.status}</span></td>
-                    </tr>`;
-                }
+                table.innerHTML += `
+                <tr>
+                    <td>${task.title}</td>
+                    <td>${task.employee}</td>
+                    <td><span style="background:#1e293b; padding:4px 8px; border-radius:4px; font-size:12px;">${task.status}</span></td>
+                </tr>`;
             });
 
             if (!hasTasks) {
@@ -1368,42 +1359,40 @@ const TaskTracker = {
             const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
             if (!user) return;
 
-            const snapshot = await getDocs(collection(db, "leaves"));
+            const qLeaves = query(collection(db, "leaves"), where("employee", "==", user.name));
+            const snapshot = await getDocs(qLeaves);
             let leaves = [];
             let totalLeaveDays = 0;
 
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data.employee === user.name) {
-                    leaves.push(data);
-                    if (data.status === 'Approved') {
-                        let currentDate = new Date(data.fromDate + 'T00:00:00');
-                        const endDate = new Date(data.toDate + 'T00:00:00');
-                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
-                            while(currentDate <= endDate) {
-                                if (isWorkingDay(currentDate)) {
-                                    totalLeaveDays += (data.dayType === 'Full') ? 1 : 0.5;
-                                }
-                                currentDate.setDate(currentDate.getDate() + 1);
+                leaves.push(data);
+                if (data.status === 'Approved') {
+                    let currentDate = new Date(data.fromDate + 'T00:00:00');
+                    const endDate = new Date(data.toDate + 'T00:00:00');
+                    if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
+                        while(currentDate <= endDate) {
+                            if (isWorkingDay(currentDate)) {
+                                totalLeaveDays += (data.dayType === 'Full') ? 1 : 0.5;
                             }
+                            currentDate.setDate(currentDate.getDate() + 1);
                         }
                     }
                 }
             });
 
-            const attSnap = await getDocs(collection(db, "attendance"));
+            const qAtt = query(collection(db, "attendance"), where("employee", "==", user.name));
+            const attSnap = await getDocs(qAtt);
             let existingRecords = [];
             let earliestDate = new Date(); 
             
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                if(att.employee === user.name) {
-                    existingRecords.push(att);
-                    const dStr = att.dateStr || att.date;
-                    if (dStr) {
-                        const d = new Date(dStr + 'T00:00:00');
-                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
-                    }
+                existingRecords.push(att);
+                const dStr = att.dateStr || att.date;
+                if (dStr) {
+                    const d = new Date(dStr + 'T00:00:00');
+                    if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
                 }
             });
             
@@ -1552,14 +1541,11 @@ const TaskTracker = {
         if (!badge) return;
         
         try {
-            const snapshot = await getDocs(collection(db, "leaves"));
-            let pendingCount = 0;
-            snapshot.forEach(docSnap => {
-                if(docSnap.data().status === 'Pending') pendingCount++;
-            });
+            const q = query(collection(db, "leaves"), where("status", "==", "Pending"));
+            const snapshot = await getDocs(q);
             
-            if (pendingCount > 0) {
-                badge.innerText = pendingCount;
+            if (snapshot.size > 0) {
+                badge.innerText = snapshot.size;
                 badge.style.display = "inline-block";
             } else {
                 badge.style.display = "none";
@@ -1665,7 +1651,6 @@ const TaskTracker = {
             const viewers = document.getElementById('folderViewers');
             const uploaders = document.getElementById('folderUploaders');
             
-            // Hardcoded fallback list matching your exact user array so it never fails
             const employeeList = [
                 { name: "Hari Prasath S", role: "employee" },
                 { name: "CB Lathieswar Reddy", role: "employee" },
@@ -1681,7 +1666,7 @@ const TaskTracker = {
                 { name: "Vigneshwaran K", role: "employee" },
                 { name: "Sakthi Prasanna S", role: "employee" },
                 { name: "Devshree Avinash Vengurlekar", role: "intern" },
-                {name: "Noor Alam", role: "employee"}
+                { name: "Noor Alam", role: "employee"}
             ];
 
             let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
@@ -1698,7 +1683,7 @@ const TaskTracker = {
             form.style.display = 'none';
         }
     },
-   // --- THIS IS THE MISSING FUNCTION TO ADD ---
+
     async saveDriveFolder() {
         const name = document.getElementById('newFolderName').value.trim();
         if (!name) return alert('Folder name required.');
@@ -1712,25 +1697,19 @@ const TaskTracker = {
         if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
 
         try {
-            // 1. Create physical folder on D: Drive
-            try {
-                const response = await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-folder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
-                });
-                
-                if (!response.ok) {
-                    throw new Error("Server responded with an error.");
-                }
-            } catch (networkError) {
-                console.error("Network Error:", networkError);
-                alert("NETWORK ERROR: Your browser is blocking the connection to the Node.js server. If you are on GitHub Pages (https://), you cannot connect to a local server (http://). Please open the admin.html file directly from your computer to use the Drive feature.");
-                if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
-                return; // Stop execution here if node server fails
+            const response = await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-folder', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true' 
+                },
+                body: JSON.stringify({ name })
+            });
+            
+            if (!response.ok) {
+                throw new Error("Server responded with status: " + response.status);
             }
 
-            // 2. Save permissions to Firebase
             await addDoc(collection(db, "drive_folders"), {
                 name, viewers, uploaders,
                 createdBy: user.name,
@@ -1742,13 +1721,13 @@ const TaskTracker = {
             this.toggleCreateFolderForm();
             this.renderDrive();
         } catch (e) {
-            console.error(e); 
-            alert("Failed to save to Firebase.");
+            console.error("Drive Folder Creation Error:", e);
+            alert("Failed to create folder: " + e.message);
         } finally {
             if (btn) { btn.disabled = false; btn.innerText = "Save Folder"; }
         }
     },
-    // --- END OF MISSING FUNCTION ---
+
     async renderDrive() {
         const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
         const foldersList = document.getElementById("driveFoldersList");
@@ -1764,7 +1743,6 @@ const TaskTracker = {
         foldersList.innerHTML = "<p style='grid-column: 1/-1; color: white;'>Loading folders...</p>";
 
         try {
-            // 1. Get folder permissions from Firebase
             const snap = await getDocs(collection(db, "drive_folders"));
             foldersList.innerHTML = "";
             let hasFolders = false;
@@ -1822,7 +1800,10 @@ const TaskTracker = {
         try {
             await fetch('https://knoll-clean-starlet.ngrok-free.dev/create-subfolder', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true' 
+                },
                 body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
             });
             this.openDriveFolder(this.currentDriveFolderName, true);
@@ -1855,7 +1836,7 @@ const TaskTracker = {
         filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
 
         try {
-            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`, {     headers: { 'ngrok-skip-browser-warning': 'true' } });
+            const res = await fetch(`https://knoll-clean-starlet.ngrok-free.dev/files/${encodeURIComponent(folderName)}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
             const files = await res.json();
             
             filesList.innerHTML = "";
@@ -1869,7 +1850,6 @@ const TaskTracker = {
                 const displayName = isFolder ? file.slice(0, -1) : file;
                 const icon = isFolder ? 'fa-folder' : 'fa-file-lines';
                 
-                // Construct the full relative path for nested files and folders
                 const relativeSubPath = folderName ? `${folderName}/${displayName}` : displayName;
 
                 let actionsHTML = isFolder 
@@ -1884,7 +1864,7 @@ const TaskTracker = {
 
                 filesList.innerHTML += `
                     <tr>
-                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"` : ''}>
+                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}',${canUpload})"` : ''}>
                             <i class="fa-solid ${icon}" style="color:${isFolder ? '#f59e0b' : '#94a3b8'}; margin-right:8px;"></i> 
                             <strong style="${!isFolder ? 'color:#e2e8f0;' : ''}">${displayName}</strong>
                         </td>
@@ -1916,11 +1896,12 @@ const TaskTracker = {
 
         try {
             await fetch(`https://knoll-clean-starlet.ngrok-free.dev/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
-                method: 'POST', body: formData 
+                method: 'POST', 
+                body: formData,
+                headers: { 'ngrok-skip-browser-warning': 'true' }
             });
             alert('Uploaded successfully!');
             fileInput.value = "";
-            fileInput.value = '';
             this.openDriveFolder(this.currentDriveFolderName, true);
         } catch (e) {
             alert('Upload failed.');
