@@ -1697,12 +1697,12 @@ const TaskTracker = {
         if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
 
         try {
-            const response = await fetch('https://noonray-company-drive.loca.lt/create-folder', {
+            const response = await fetch('https://rotten-insect-51.loca.lt/create-folder', {
                 method: 'POST',
                 headers: { 
-                'Content-Type': 'application/json',
-                'Bypass-Tunnel-Reminder': 'true'
-            },
+                    'Content-Type': 'application/json',
+                    'Bypass-Tunnel-Reminder': 'true' 
+                },
                 body: JSON.stringify({ name })
             });
             
@@ -1787,9 +1787,9 @@ const TaskTracker = {
         if(!confirm(`WARNING: Completely delete "${folderName}" and all contents?`)) return;
         try {
             await deleteDoc(doc(db, "drive_folders", docId));
-            await fetch(`https://noonray-company-drive.loca.lt/delete-folder/${encodeURIComponent(folderName)}`, { 
+            await fetch(`https://rotten-insect-51.loca.lt/delete-folder/${encodeURIComponent(folderName)}`, { 
                 method: 'DELETE',
-                headers: { 'ngrok-skip-browser-warning': 'true' }
+                headers: { 'Bypass-Tunnel-Reminder': 'true' }
             });
             alert("Folder deleted.");
             this.renderDrive();
@@ -1801,11 +1801,11 @@ const TaskTracker = {
         if (!subFolderName) return;
 
         try {
-            await fetch('https://noonray-company-drive.loca.lt/create-subfolder', {
+            await fetch('https://rotten-insect-51.loca.lt/create-subfolder', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true' 
+                    'Bypass-Tunnel-Reminder': 'true' 
                 },
                 body: JSON.stringify({ folderName: this.currentDriveFolderName, subFolderName })
             });
@@ -1839,8 +1839,8 @@ const TaskTracker = {
         filesList.innerHTML = "<tr><td colspan='2' style='text-align:center;'>Loading files...</td></tr>";
 
         try {
-            const res = await fetch(`https://noonray-company-drive.loca.lt/files/${encodeURIComponent(folderName)}`, { 
-                headers: { 'ngrok-skip-browser-warning': 'true' } 
+            const res = await fetch(`https://rotten-insect-51.loca.lt/files/${encodeURIComponent(folderName)}`, { 
+                headers: { 'Bypass-Tunnel-Reminder': 'true' } 
             });
             const files = await res.json();
             
@@ -1860,11 +1860,11 @@ const TaskTracker = {
                 let actionsHTML = isFolder 
                     ? `
                         <button class="action-btn" style="background:#f59e0b; padding: 6px 12px; margin-right: 5px;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"><i class="fa-solid fa-folder-open"></i> Open</button>
-                        <a href="https://noonray-company-drive.loca.lt/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
+                        <a href="https://rotten-insect-51.loca.lt/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(displayName)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download Zip</a>
                       `
                     : `
-                        <a href="https://noonray-company-drive.loca.lt/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
-                        <a href="https://noonray-company-drive.loca.lt/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
+                        <a href="https://rotten-insect-51.loca.lt/view?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" target="_blank" class="action-btn" style="background:#eab308; text-decoration:none; display:inline-block; padding: 6px 12px; margin-right: 5px;">View</a>
+                        <a href="https://rotten-insect-51.loca.lt/download?folder=${encodeURIComponent(folderName)}&file=${encodeURIComponent(file)}" class="action-btn" style="background:#3b82f6; text-decoration:none; display:inline-block; padding: 6px 12px;">Download</a>
                       `;
 
                 filesList.innerHTML += `
@@ -1900,10 +1900,10 @@ const TaskTracker = {
         }
 
         try {
-            await fetch(`https://noonray-company-drive.loca.lt/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
+            await fetch(`https://rotten-insect-51.loca.lt/upload/${encodeURIComponent(this.currentDriveFolderName)}`, { 
                 method: 'POST', 
                 body: formData,
-                headers: { 'ngrok-skip-browser-warning': 'true' }
+                headers: { 'Bypass-Tunnel-Reminder': 'true' }
             });
             alert('Uploaded successfully!');
             fileInput.value = "";
