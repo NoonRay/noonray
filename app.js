@@ -1700,9 +1700,9 @@ const TaskTracker = {
             const response = await fetch('https://noonray-company-drive.loca.lt/create-folder', {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true' 
-                },
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true'
+            },
                 body: JSON.stringify({ name })
             });
             
