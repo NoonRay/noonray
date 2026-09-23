@@ -635,7 +635,7 @@ const TaskTracker = {
             snapshot.forEach((taskDoc)=>{
                 const task = taskDoc.data();
                 task.id = taskDoc.id; 
-                myTasks.push(task); // No more manual IF statement needed
+                myTasks.push(task); 
             });
 
             myTasks.sort((a, b) => {
@@ -723,44 +723,42 @@ const TaskTracker = {
         if (leavesTable) leavesTable.innerHTML = "<tr><td colspan='7' style='text-align:center; color:black;'>Loading...</td></tr>"; 
 
         try {
-            const leaveSnap = await getDocs(collection(db, "leaves"));
+            const leavesQ = query(collection(db, "leaves"), where("employee", "==", employeeName));
+            const leaveSnap = await getDocs(leavesQ);
             let totalLeaveDays = 0;
             let employeeLeavesForTable = []; 
             
             leaveSnap.forEach(docSnap => {
                 const l = docSnap.data();
-                if(l.employee === employeeName) {
-                    employeeLeavesForTable.push(l); 
+                employeeLeavesForTable.push(l); 
+                
+                if (l.status === 'Approved') {
+                    let currentDate = new Date(l.fromDate + 'T00:00:00');
+                    const endDate = new Date(l.toDate + 'T00:00:00');
                     
-                    if (l.status === 'Approved') {
-                        let currentDate = new Date(l.fromDate + 'T00:00:00');
-                        const endDate = new Date(l.toDate + 'T00:00:00');
-                        
-                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
-                            while(currentDate <= endDate) {
-                                if (isWorkingDay(currentDate)) {
-                                    totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
-                                }
-                                currentDate.setDate(currentDate.getDate() + 1);
+                    if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
+                        while(currentDate <= endDate) {
+                            if (isWorkingDay(currentDate)) {
+                                totalLeaveDays += (l.dayType === 'Full') ? 1 : 0.5;
                             }
+                            currentDate.setDate(currentDate.getDate() + 1);
                         }
                     }
                 }
             });
 
-            const attSnap = await getDocs(collection(db, "attendance"));
+            const attQ = query(collection(db, "attendance"), where("employee", "==", employeeName));
+            const attSnap = await getDocs(attQ);
             let existingRecords = [];
             let earliestDate = new Date(); 
             
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                if(att.employee === employeeName) {
-                    existingRecords.push(att);
-                    const dStr = att.dateStr || att.date;
-                    if (dStr) {
-                        const d = new Date(dStr + 'T00:00:00');
-                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
-                    }
+                existingRecords.push(att);
+                const dStr = att.dateStr || att.date;
+                if (dStr) {
+                    const d = new Date(dStr + 'T00:00:00');
+                    if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
                 }
             });
             
@@ -926,14 +924,13 @@ const TaskTracker = {
                 attendanceTable.innerHTML = "<tr><td colspan='5' style='text-align:center; color: black;'>No attendance records found.</td></tr>";
             }
 
-            const taskSnap = await getDocs(collection(db, "tasks"));
+            const taskQ = query(collection(db, "tasks"), where("employee", "==", employeeName));
+            const taskSnap = await getDocs(taskQ);
             let employeeTasks = [];
             
             taskSnap.forEach(docSnap => {
                 const task = docSnap.data();
-                if(task.employee === employeeName) {
-                    employeeTasks.push(task);
-                }
+                employeeTasks.push(task);
             });
 
             employeeTasks.sort((a, b) => {
@@ -1089,17 +1086,19 @@ const TaskTracker = {
         }
         
         try {
-            const snapshot = await getDocs(collection(db, "attendance"));
+            const q = query(
+                collection(db, "attendance"), 
+                where("employee", "==", user.name),
+                where("dateStr", "==", todayStr)
+            );
+            const snapshot = await getDocs(q);
             let existingDocId = null;
             let existingData = null;
 
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.employee === user.name && data.dateStr === todayStr) {
-                    existingDocId = docSnap.id;
-                    existingData = data;
-                }
-            });
+            if (!snapshot.empty) {
+                existingDocId = snapshot.docs[0].id;
+                existingData = snapshot.docs[0].data();
+            }
 
             if (action === 'CheckIn') {
                 if (existingDocId) {
@@ -1297,21 +1296,20 @@ const TaskTracker = {
         table.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Loading tasks...</td></tr>";
 
         try {
-            const snapshot = await getDocs(collection(db, "tasks"));
+            const q = query(collection(db, "tasks"), where("startDate", "==", formattedDate));
+            const snapshot = await getDocs(q);
             table.innerHTML = ""; 
             let hasTasks = false;
 
             snapshot.forEach(doc => {
+                hasTasks = true;
                 const task = doc.data();
-                if (task.startDate === formattedDate) {
-                    hasTasks = true;
-                    table.innerHTML += `
-                    <tr>
-                        <td>${task.title}</td>
-                        <td>${task.employee}</td>
-                        <td><span style="background:#1e293b; padding:4px 8px; border-radius:4px; font-size:12px;">${task.status}</span></td>
-                    </tr>`;
-                }
+                table.innerHTML += `
+                <tr>
+                    <td>${task.title}</td>
+                    <td>${task.employee}</td>
+                    <td><span style="background:#1e293b; padding:4px 8px; border-radius:4px; font-size:12px;">${task.status}</span></td>
+                </tr>`;
             });
 
             if (!hasTasks) {
@@ -1372,42 +1370,40 @@ const TaskTracker = {
             const user = JSON.parse(sessionStorage.getItem("loggedInUser"));
             if (!user) return;
 
-            const snapshot = await getDocs(collection(db, "leaves"));
+            const qLeaves = query(collection(db, "leaves"), where("employee", "==", user.name));
+            const snapshot = await getDocs(qLeaves);
             let leaves = [];
             let totalLeaveDays = 0;
 
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data.employee === user.name) {
-                    leaves.push(data);
-                    if (data.status === 'Approved') {
-                        let currentDate = new Date(data.fromDate + 'T00:00:00');
-                        const endDate = new Date(data.toDate + 'T00:00:00');
-                        if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
-                            while(currentDate <= endDate) {
-                                if (isWorkingDay(currentDate)) {
-                                    totalLeaveDays += (data.dayType === 'Full') ? 1 : 0.5;
-                                }
-                                currentDate.setDate(currentDate.getDate() + 1);
+                leaves.push(data);
+                if (data.status === 'Approved') {
+                    let currentDate = new Date(data.fromDate + 'T00:00:00');
+                    const endDate = new Date(data.toDate + 'T00:00:00');
+                    if (!isNaN(currentDate.getTime()) && !isNaN(endDate.getTime())) {
+                        while(currentDate <= endDate) {
+                            if (isWorkingDay(currentDate)) {
+                                totalLeaveDays += (data.dayType === 'Full') ? 1 : 0.5;
                             }
+                            currentDate.setDate(currentDate.getDate() + 1);
                         }
                     }
                 }
             });
 
-            const attSnap = await getDocs(collection(db, "attendance"));
+            const qAtt = query(collection(db, "attendance"), where("employee", "==", user.name));
+            const attSnap = await getDocs(qAtt);
             let existingRecords = [];
             let earliestDate = new Date(); 
             
             attSnap.forEach(docSnap => {
                 const att = docSnap.data();
-                if(att.employee === user.name) {
-                    existingRecords.push(att);
-                    const dStr = att.dateStr || att.date;
-                    if (dStr) {
-                        const d = new Date(dStr + 'T00:00:00');
-                        if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
-                    }
+                existingRecords.push(att);
+                const dStr = att.dateStr || att.date;
+                if (dStr) {
+                    const d = new Date(dStr + 'T00:00:00');
+                    if (!isNaN(d.getTime()) && d < earliestDate) earliestDate = d;
                 }
             });
             
@@ -1558,14 +1554,9 @@ const TaskTracker = {
         try {
             const q = query(collection(db, "leaves"), where("status", "==", "Pending"));
             const snapshot = await getDocs(q);
-            let pendingCount = snapshot.size; // No need to loop, just get the size
-            let pendingCount = 0;
-            snapshot.forEach(docSnap => {
-                if(docSnap.data().status === 'Pending') pendingCount++;
-            });
             
-            if (pendingCount > 0) {
-                badge.innerText = pendingCount;
+            if (snapshot.size > 0) {
+                badge.innerText = snapshot.size;
                 badge.style.display = "inline-block";
             } else {
                 badge.style.display = "none";
@@ -1890,7 +1881,7 @@ const TaskTracker = {
 
                 filesList.innerHTML += `
                     <tr>
-                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}', ${canUpload})"` : ''}>
+                        <td ${isFolder ? `style="cursor:pointer; color:#f59e0b;" onclick="TaskTracker.openDriveFolder('${relativeSubPath}',${canUpload})"` : ''}>
                             <i class="fa-solid ${icon}" style="color:${isFolder ? '#f59e0b' : '#94a3b8'}; margin-right:8px;"></i> 
                             <strong style="${!isFolder ? 'color:#e2e8f0;' : ''}">${displayName}</strong>
                         </td>
