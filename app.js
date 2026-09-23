@@ -1,5 +1,5 @@
 import {
-    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc
+    db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, getDoc, query, where
 } from "./firebase.js";
 
 // =====================================================
@@ -628,15 +628,14 @@ const TaskTracker = {
         if(!currentUser) return;
 
         try {
-            const snapshot = await getDocs(collection(db,"tasks"));
-            let myTasks = [];
+            const q = query(collection(db, "tasks"), where("employee", "==", currentUser.name));
+            const snapshot = await getDocs(q);
             
+            let myTasks = [];
             snapshot.forEach((taskDoc)=>{
                 const task = taskDoc.data();
                 task.id = taskDoc.id; 
-                if(task.employee === currentUser.name){
-                    myTasks.push(task);
-                }
+                myTasks.push(task); // No more manual IF statement needed
             });
 
             myTasks.sort((a, b) => {
@@ -1017,7 +1016,12 @@ const TaskTracker = {
         }
 
         try {
-            const snapshot = await getDocs(collection(db, "attendance"));
+            const q = query(
+                collection(db, "attendance"), 
+                where("employee", "==", user.name),
+                where("dateStr", "==", todayStr)
+            );
+            const snapshot = await getDocs(q);
             let todayRecord = null;
             
             snapshot.forEach(docSnap => {
@@ -1552,7 +1556,9 @@ const TaskTracker = {
         if (!badge) return;
         
         try {
-            const snapshot = await getDocs(collection(db, "leaves"));
+            const q = query(collection(db, "leaves"), where("status", "==", "Pending"));
+            const snapshot = await getDocs(q);
+            let pendingCount = snapshot.size; // No need to loop, just get the size
             let pendingCount = 0;
             snapshot.forEach(docSnap => {
                 if(docSnap.data().status === 'Pending') pendingCount++;
