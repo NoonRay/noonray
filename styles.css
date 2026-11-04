@@ -278,6 +278,23 @@ body {
 }
 
 /* --- FORMS & INPUTS --- */
+
+/* Ensure native browser date-picker controls use white icons */
+input[type="date"] {
+    color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
 .label {
     display: block;
     margin-top: 15px;
