@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Employee Dashboard</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="payslip.css"> <!-- Payslip add-on -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 <script type="module" src="app.js"></script>
+<script type="module" src="payslip.js"></script> <!-- Payslip add-on -->
 </head>
 <body>
 
@@ -32,6 +34,8 @@
         <i class="fa-solid fa-hard-drive"></i> Company Drive
     </a>
     
+    <a href="#" id="payslipNavLink" onclick="TaskTracker.switchEmployeeView('payslip')"><i class="fa-solid fa-file-invoice-dollar"></i> Payslip</a>
+
     <button class="btn logout-btn full-btn" onclick="TaskTracker.logout()">
         <i class="fa-solid fa-right-from-bracket"></i> Logout
     </button>
@@ -198,6 +202,9 @@
             </table>
         </div>
     </div>
+
+<!-- PAYSLIP VIEW (add-on, filled by payslip.js) -->
+<div id="employeePayslipView" style="display: none;"></div>
 
 </main>
 </div>

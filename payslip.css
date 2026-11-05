@@ -1,0 +1,86 @@
+/* =====================================================
+   NOONRAY PAYSLIP MODULE STYLES (add-on, prefixed ps-)
+   ===================================================== */
+
+/* ---------- dashboard UI ---------- */
+.ps-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; }
+.ps-head h2 { font-weight: 600; }
+.ps-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.ps-tab {
+    background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1);
+    padding: 9px 16px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500;
+    transition: all 0.2s;
+}
+.ps-tab i { margin-right: 6px; }
+.ps-tab:hover { background: rgba(255,255,255,0.1); color: white; }
+.ps-tab.active { background: #2563eb; border-color: #3b82f6; color: white; }
+
+#adminPayslipView .card, #employeePayslipView .card { margin-bottom: 25px; }
+.ps-hint { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
+.ps-msg { color: #fbbf24; font-size: 14px; margin-top: 15px; min-height: 1px; }
+.ps-msg a { color: #60a5fa; }
+.ps-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
+.ps-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.ps-subhead { margin: 25px 0 8px; font-size: 14px; font-weight: 600; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.04em; }
+.ps-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.ps-row-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+
+.ps-amt-row { display: grid; grid-template-columns: 1fr 160px; align-items: center; gap: 12px; margin-bottom: 8px; }
+.ps-amt-row label { color: #cbd5e1; font-size: 14px; }
+.ps-amt-row .input { margin: 0; text-align: right; }
+
+.ps-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 25px; }
+.ps-summary > div { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 16px; }
+.ps-summary span { display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px; }
+.ps-summary strong { font-size: 18px; }
+
+.ps-page-scroll { overflow: auto; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 12px; }
+.ps-page-scroll .ps-page { margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+
+/* scaled thumbnail for settings */
+.ps-thumb { width: 397px; height: 561px; overflow: hidden; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+.ps-thumb .ps-page { transform: scale(0.5); transform-origin: top left; }
+
+@media (max-width: 1024px) {
+    .ps-form-grid, .ps-two-col, .ps-summary { grid-template-columns: 1fr; }
+}
+
+/* ---------- the A4 payslip page ---------- */
+.ps-page {
+    position: relative; width: 210mm; height: 296mm; overflow: hidden;
+    background: #ffffff; color: #111827; font-family: 'Inter', Arial, sans-serif; font-size: 10pt;
+}
+.ps-page * { color: inherit; }
+.ps-letterhead { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 0; }
+.ps-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+.ps-nolh { font-size: 20pt; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 6px; margin-bottom: 12px; }
+.ps-title {
+    text-align: center; font-weight: 700; font-size: 12pt; letter-spacing: 0.06em;
+    padding: 7px 0; margin-bottom: 12px; border-top: 1.5px solid #1f2937; border-bottom: 1.5px solid #1f2937;
+}
+.ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; margin-bottom: 10px; }
+.ps-kv { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dotted #d1d5db; }
+.ps-kv span { color: #4b5563; }
+.ps-kv strong { font-weight: 600; text-align: right; }
+
+.ps-days { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #9ca3af; margin: 8px 0 12px; }
+.ps-days > div { padding: 6px 10px; display: flex; justify-content: space-between; }
+.ps-days > div + div { border-left: 1px solid #9ca3af; }
+.ps-days span { color: #4b5563; }
+
+.ps-table { width: 100%; border-collapse: collapse; }
+.ps-table th, .ps-table td { border: 1px solid #9ca3af; padding: 6px 9px; text-align: left; font-size: 9.5pt; }
+.ps-table thead th { background: #e5e7eb; font-weight: 700; }
+.ps-table tfoot td { background: #f3f4f6; font-weight: 700; }
+.ps-table .ps-amt { text-align: right; width: 22%; white-space: nowrap; }
+.ps-table tbody td { height: 24px; }
+
+.ps-net { border: 1.5px solid #1f2937; margin-top: 12px; padding: 9px 12px; background: #f9fafb; }
+.ps-net > div { display: flex; justify-content: space-between; align-items: center; font-size: 12pt; }
+.ps-net strong { font-size: 13pt; }
+.ps-net p { margin-top: 4px; font-style: italic; color: #374151; font-size: 9.5pt; }
+.ps-remarks { margin-top: 10px; font-size: 9.5pt; }
+
+.ps-sign { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding-top: 20px; }
+.ps-note { font-size: 8.5pt; color: #6b7280; max-width: 60%; }
+.ps-signbox { text-align: center; min-width: 170px; border-top: 1px solid #374151; padding-top: 5px; display: flex; flex-direction: column; font-size: 9pt; }
