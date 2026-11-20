@@ -200,7 +200,7 @@ const users = [
     { email: "sakthi", password: "NRIN014", name: "Sakthi Prasanna S", role: "employee", joiningDate: "2026-06-10" },
     { email: "devshree", password: "NRIN020", name: "Devshree Avinash Vengurlekar", role: "intern", joiningDate: "2026-08-03" },
     { email: "noor", password: "NR018", name: "Noor Alam", role: "employee", joiningDate: "2026-09-15" },
-    { email: "Madhu", password: "NRIN021", name: "Madhu Bhashini", role: "intern", joiningDate: "2026-11-16" }
+    { email: "madhu", password: "NRIN021", name: "Madhu Bhashini", role: "intern", joiningDate: "2026-11-16" }
 ];
 
 function populateEmployeeDropdown() {
@@ -1667,7 +1667,8 @@ const TaskTracker = {
                 { name: "Vigneshwaran K", role: "employee" },
                 { name: "Sakthi Prasanna S", role: "employee" },
                 { name: "Devshree Avinash Vengurlekar", role: "intern" },
-                { name: "Noor Alam", role: "employee"}
+                { name: "Noor Alam", role: "employee"},
+                { name: "Madhu Bhashini", role: "intern"}
             ];
 
             let html = '<label style="color:white; cursor:pointer; display:block; margin-bottom:5px;"><input type="checkbox" value="All" checked> All Employees</label>';
